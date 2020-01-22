@@ -1,14 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+#include "Player_Class_MovementShift.h"
+#include "GameInstance_Class.h"
 
-#include "MainPlayer.h"
-#include "DimensionShiftGameInstance.h"
-
-// Sets default values
-AMainPlayer::AMainPlayer()
+APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	//Setting Capsule Component initial size
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
 
 	//Not allowing character itself to rotate in the direction the camera is facing in
@@ -16,22 +14,25 @@ AMainPlayer::AMainPlayer()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;				//Character rotates in the direction it is moving in
-	GetCharacterMovement()->JumpZVelocity = 600.0f;
-	GetCharacterMovement()->AirControl = 0.2f;
-	GetCharacterMovement()->GravityScale = 1.5f;
+	GetCharacterMovement()->bOrientRotationToMovement = true;	//Character rotates in the direction it is moving in
+	GetCharacterMovement()->JumpZVelocity = 600.0f;				//Jump height
+	GetCharacterMovement()->AirControl = 0.2f;					//Degree of control while airborne
+	GetCharacterMovement()->GravityScale = 1.5f;				//Gravity amount
 
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
+	//Creating a SpringArmComponent on this Actor
+
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));	//The parameter names the SpringArmComponent in the editor
+	CameraBoom->SetupAttachment(RootComponent);		//Set the spring arm as the root component
 	CameraBoom->SocketOffset.Z = 120.0f;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	FollowCamera->bUsePawnControlRotation = false;
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);		//Attaches camera component to spring arm, specifically at the end of the spring arm
+	FollowCamera->bUsePawnControlRotation = false;		//Will the camera use the Pawn's controller's rotation?
+														//This script inherits ACharacter, which inherits APawn
 	FollowCamera->FieldOfView = 110.0f;
 	FollowCamera->OrthoWidth = 1560.0f;
 
-	Tags.Add(TEXT("Player"));
+	Tags.Add(TEXT("Player"));			//This is a tag declaration for this Actor. Similar to Unity.
 
 	//--------------Code below is for starting in 3D-------------------------
 	/*
@@ -44,28 +45,29 @@ AMainPlayer::AMainPlayer()
 	//------------------------------------------------------------------------
 
 	//--------------Code below is for starting in 2D-------------------------
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
-	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);		//Controls turn speed of character
+
 	const FRotator newRot(0.0f, twoDimensionYaw, 0.0f);
-	CameraBoom->bUsePawnControlRotation = false;
+
+	CameraBoom->bUsePawnControlRotation = false;			//Will the spring arm use the Pawn's controller's rotation?
 	CameraBoom->TargetArmLength = 1000.0f;
-	CameraBoom->SetAbsolute(false, true, false);
-	CameraBoom->SetWorldRotation(newRot);
+	CameraBoom->SetAbsolute(false, true, false);			//Required if you want to rotate this Actor according to world rotation
+	CameraBoom->SetWorldRotation(newRot);					//Actually sets this Actor's world rotation
 
 	FollowCamera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	//------------------------------------------------------------------------
 }
 
 // Called when the game starts or when spawned
-void AMainPlayer::BeginPlay()
+void APlayer_Class_MovementShift::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	UDimensionShiftGameInstance* DSGI = Cast<UDimensionShiftGameInstance>(GetGameInstance());
 
-	if (DSGI != nullptr)
+	UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());	//Setting GameInstance (singleton). Don't do this in constructor.
+
+	if (GI != nullptr)
 	{
-		DSGI->OnDimensionSwapped.AddDynamic(this, &AMainPlayer::DoSwapDimensionAction);
+		GI->OnDimensionSwapped.AddDynamic(this, &APlayer_Class_MovementShift::DoSwapDimensionAction);	//Delegate subscription
 	}
 
 	//--------------Code below is for starting in 2D-------------------------
@@ -74,19 +76,21 @@ void AMainPlayer::BeginPlay()
 }
 
 // Called every frame
-void AMainPlayer::Tick(float DeltaTime)
+void APlayer_Class_MovementShift::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
 
 // Called to bind functionality to input
-void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void APlayer_Class_MovementShift::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void AMainPlayer::MoveForward(float fAxis)
+//I am kind of confused at these next two functions' code.
+//I got it from a tutorial and I vaguely understand only.
+void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
 	if (bIsUsing3DControls)
 	{
@@ -98,7 +102,7 @@ void AMainPlayer::MoveForward(float fAxis)
 	}
 }
 
-void AMainPlayer::MoveRight(float fAxis)
+void APlayer_Class_MovementShift::MoveRight(float fAxis)
 {
 	if (bIsUsing3DControls)
 	{
@@ -110,22 +114,22 @@ void AMainPlayer::MoveRight(float fAxis)
 	}
 	else
 	{
-		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);
+		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
 	}
 }
 
-void AMainPlayer::UseSwapDimensionAbility()
+void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
-	UDimensionShiftGameInstance* DSGI = Cast<UDimensionShiftGameInstance>(GetGameInstance());
+	UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
 
-	if (DSGI != nullptr)
+	if (GI != nullptr)
 	{
-		DSGI->SwapDimensions();
+		GI->SwapDimensions();
 	}
 }
 
 //The method connected to the Game Instance's FOnDimensionSwapped delegate
-void AMainPlayer::DoSwapDimensionAction(bool bIsIn3D, float baselineYPos)
+void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float baselineYPos)
 {
 	if (bIsIn3D)
 	{
@@ -137,7 +141,7 @@ void AMainPlayer::DoSwapDimensionAction(bool bIsIn3D, float baselineYPos)
 	}
 }
 
-void AMainPlayer::TurnTo3D()
+void APlayer_Class_MovementShift::TurnTo3D()
 {
 	bIsUsing3DControls = true;
 
@@ -152,7 +156,7 @@ void AMainPlayer::TurnTo3D()
 	Controller->SetIgnoreLookInput(false);
 }
 
-void AMainPlayer::TurnTo2D(float baselineYPos)
+void APlayer_Class_MovementShift::TurnTo2D(float baselineYPos)
 {
 	bIsUsing3DControls = false;
 
@@ -167,7 +171,7 @@ void AMainPlayer::TurnTo2D(float baselineYPos)
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	Controller->SetIgnoreLookInput(true);
 
-	//moving character to baseline. Only involves moving the Y Position of this actor
+	//moving character to 2D baseline. Only involves moving the Y Position of this actor
 	FVector NewPos = FVector(GetActorLocation().X, baselineYPos, GetActorLocation().Z);
 	SetActorLocation(NewPos);
 }
