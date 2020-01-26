@@ -176,7 +176,10 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	Controller->SetIgnoreLookInput(true);
 
-	FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
-	SetActorLocation(NewPos);
+	if (!bIsOnLevelObstacle)
+	{
+		FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
+		SetActorLocation(NewPos);
+	}
 }
 

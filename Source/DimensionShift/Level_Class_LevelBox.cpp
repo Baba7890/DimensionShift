@@ -1,6 +1,7 @@
 #include "Level_Class_LevelBox.h"
 #include "Object_Class_HelperStatics.h"
 #include "GameInstance_Class.h"
+#include "Level_Class_LevelObstacle.h"
 
 ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 {
@@ -66,6 +67,22 @@ void ALevel_Class_LevelBox::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, 
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor->ActorHasTag("Player")))
 	{
 		bIsPlayerInBox = true;
+
+		if (AttachedObjects.Num() > 0)
+		{
+			if (GI != nullptr)
+			{
+				for (int i = 0; i < AttachedObjects.Num(); i++)
+				{
+					ALevel_Class_LevelObstacle* Obstacle = Cast<ALevel_Class_LevelObstacle>(AttachedObjects[i]);
+
+					if (Obstacle != nullptr)
+					{
+						Obstacle->SubscribeSwapMethodToGameInstance(GI, true);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -74,6 +91,22 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 	if ((OtherActor != nullptr) && (OtherActor != this) && OtherActor->ActorHasTag("Player"))
 	{
 		bIsPlayerInBox = false;
+
+		if (AttachedObjects.Num() > 0)
+		{
+			if (GI != nullptr)
+			{
+				for (int i = 0; i < AttachedObjects.Num(); i++)
+				{
+					ALevel_Class_LevelObstacle* Obstacle = Cast<ALevel_Class_LevelObstacle>(AttachedObjects[i]);
+
+					if (Obstacle != nullptr)
+					{
+						Obstacle->SubscribeSwapMethodToGameInstance(GI, false);
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -13,14 +13,16 @@ void UGameInstance_Class::SwapDimensions()
 {
 	bIsIn3D = !bIsIn3D;
 
+	bool hasFoundPlayerLevelBox = false;
+
 	if (GetNoOfLevelBoxes() > 0)
 	{
 		for (int i = 0; i < GetNoOfLevelBoxes(); i++)
 		{
-			if (!LevelBoxes[i]->bIsPlayerInBox)
-			{
+			if (LevelBoxes[i]->bIsPlayerInBox && !hasFoundPlayerLevelBox)
+				hasFoundPlayerLevelBox = true;
+			else
 				LevelBoxes[i]->EnableLevelBox(bIsIn3D);
-			}
 		}
 	}
 
@@ -39,6 +41,7 @@ int32 UGameInstance_Class::GetNoOfLevelBoxes()
 
 float UGameInstance_Class::GetPlayerInLevelBoxBaseline()
 {
+	//This section of code is very vulnerable. What if there are multiple level boxes with bIsPlayerBox = true?
 	for (int i = 0; i < GetNoOfLevelBoxes(); i++)
 	{
 		if (LevelBoxes[i]->bIsPlayerInBox)
