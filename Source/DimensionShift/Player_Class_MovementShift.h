@@ -2,12 +2,6 @@
 
 #pragma once
 
-//Include whatever you might need to use. Unreal doesn't include these things initially to quicken compile times.
-//MAKE SURE WHATEVER YOU ADD IS BETWEEN THESE TWO INCLUDES
-//#include "CoreMinimal.h"
-//[Place extra includes here]
-//#include "Player_Class_MovementShift.generated.h"
-
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Camera/CameraComponent.h"
@@ -18,6 +12,8 @@
 #include "GameFramework/Controller.h"
 #include "Player_Class_MovementShift.generated.h"
 
+class UGameInstance_Class;
+
 UCLASS()
 class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 {
@@ -26,14 +22,8 @@ class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 public:
 	APlayer_Class_MovementShift();
 
-	//UPROPERTYs allow you to show or/and allow editing the variable in the editor.
-	//VisibleAnywhere -> Can be seen in Editor but cannot be edited
-	//EditAnywhere -> Can be seen and edited. Should only be used for normal data type variables, not objects
-	//BlueprintReadOnly -> This object/variable/component can be gotten in blueprints
-	//Category = "String" -> This allows you to categorize where the object/variable/component
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-		USpringArmComponent* CameraBoom;	//All references to objects of a class should be a pointer '*'.
+		USpringArmComponent* CameraBoom;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 		UCameraComponent* FollowCamera;
@@ -42,25 +32,25 @@ public:
 
 private:
 	bool bIsUsing3DControls = false;
+	UGameInstance_Class* GI;
 
 protected:
-	// Called when the game starts or when spawned
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	//UPROPERTYs allow you to let designer call functions from blueprints or allow a function to be subscribed to a delegate
-	//BlueprintCallable -> This function can be called from the blueprints
+	/**
+	 * Called when the player uses his dimension swap ability.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Dimension Swap")
-		void UseSwapDimensionAbility();
+	void UseSwapDimensionAbility();
 
-	UFUNCTION()		//This property should be placed when this function will be called by delegate
-		void DoSwapDimensionAction(bool bIsIn3D, float baselineYPos);
+	//Will be called by game instance OnDimensionSwapped delegate
+	UFUNCTION()
+	void DoSwapDimensionAction(bool bIsIn3D);
 
 private:
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
@@ -69,6 +59,13 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
 	void MoveRight(float fAxis);
 
+	/**
+	 * Called when the world swaps to 3D.
+	 */
 	void TurnTo3D();
-	void TurnTo2D(float baselineYPos);
+
+	/**
+	 * Called when the world swaps to 2D.
+	 */
+	void TurnTo2D();
 };

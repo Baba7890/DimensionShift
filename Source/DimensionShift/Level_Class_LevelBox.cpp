@@ -7,13 +7,39 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 	PrimaryActorTick.bCanEverTick = true;
 
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Collider"));
-	BoxCollider->SetMobility(EComponentMobility::Static);		//Similar to rigidbody's collision type or something
-	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));		//Similar to Unity's collision matrix in a way
+	BoxCollider->SetMobility(EComponentMobility::Static);
+	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));
 	BoxCollider->SetBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 
-	//Add the being and end overlap functions to OnComponentBeginOverlap and OnComponentEndOverlap so they will be called on overlap
 	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);	
 	BoxCollider->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnEndOverlap);
+}
+
+void ALevel_Class_LevelBox::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (GetWorld())
+	{
+		GI = Cast<UGameInstance_Class>(GetWorld()->GetGameInstance());
+
+		if (GI != nullptr)
+		{
+			GI->AddLevelBox(this);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s can't get a ref of Game Instance from PostInitializeComponents()"), *this->GetName());
+		}
+	}
+
+	GetAttachedActors(AttachedObjects);
+
+	if (AttachedObjects.Num() <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s has no attached actors. Attach a floor and LevelObstacles or remove this level box."),
+			*this->GetName());
+	}
 }
 
 // Called when the game starts or when spawned
@@ -21,17 +47,6 @@ void ALevel_Class_LevelBox::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
-
-	if (GI != nullptr)
-	{
-		GI->AddLevelBox(this);
-	}
-
-	GetAttachedActors(AttachedObjects);		//This gets all attached actors of this actor. (You can see these actors on the World Outliner)
-
-	//Not sure whether this code is correct
-	//Apparently OnBeginOverlap is already called before BeginPlay() which makes no sense
 	if (!bIsPlayerInBox)
 	{
 		EnableLevelBox(false);
@@ -64,7 +79,6 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 
 void ALevel_Class_LevelBox::EnableLevelBox(bool bIsIn3D)
 {
-	//Remember the Helper Class static's EnableActor()?
 	UObject_Class_HelperStatics::EnableActor(this, bIsIn3D);
 
 	if (AttachedObjects.Num() > 0)

@@ -16,9 +16,9 @@ public:
 	UObject_Class_HelperStatics(const FObjectInitializer& ObjectInitializer);
 
 	/**
-	* This static function can be used to enable/disable an actor.
-	* @param - ChosenActor -> The Actor to be enabled/disabled
-	* @param - bIsEnabled -> Is this Actor going to be enabled or disabled? true = Enabled, false = Disabled
-	*/
+	 * This static function can be used to enable/disable an actor.
+	 * @param - ChosenActor -> The Actor to be enabled/disabled
+	 * @param - bIsEnabled -> Is this Actor going to be enabled or disabled? true = Enabled, false = Disabled
+	 */
 	static void EnableActor(AActor* ChosenActor, bool bIsEnabled);
 };

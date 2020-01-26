@@ -3,10 +3,7 @@
 
 APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	//Setting Capsule Component initial size
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
 
 	//Not allowing character itself to rotate in the direction the camera is facing in
@@ -15,24 +12,24 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;	//Character rotates in the direction it is moving in
-	GetCharacterMovement()->JumpZVelocity = 600.0f;				//Jump height
-	GetCharacterMovement()->AirControl = 0.2f;					//Degree of control while airborne
-	GetCharacterMovement()->GravityScale = 1.5f;				//Gravity amount
+	GetCharacterMovement()->JumpZVelocity = 1200.0f;
+	GetCharacterMovement()->AirControl = 0.2f;
+	GetCharacterMovement()->GravityScale = 2.8f;
+	GetCharacterMovement()->MaxAcceleration = 10000.0f;
+	GetCharacterMovement()->GroundFriction = 100.0f;
+	GetCharacterMovement()->bEnablePhysicsInteraction = false;
 
-	//Creating a SpringArmComponent on this Actor
-
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));	//The parameter names the SpringArmComponent in the editor
-	CameraBoom->SetupAttachment(RootComponent);		//Set the spring arm as the root component
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->SocketOffset.Z = 120.0f;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);		//Attaches camera component to spring arm, specifically at the end of the spring arm
-	FollowCamera->bUsePawnControlRotation = false;		//Will the camera use the Pawn's controller's rotation?
-														//This script inherits ACharacter, which inherits APawn
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	FollowCamera->bUsePawnControlRotation = false;
 	FollowCamera->FieldOfView = 110.0f;
 	FollowCamera->OrthoWidth = 1560.0f;
 
-	Tags.Add(TEXT("Player"));			//This is a tag declaration for this Actor. Similar to Unity.
+	Tags.Add(TEXT("Player"));
 
 	//--------------Code below is for starting in 3D-------------------------
 	/*
@@ -45,17 +42,32 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	//------------------------------------------------------------------------
 
 	//--------------Code below is for starting in 2D-------------------------
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);		//Controls turn speed of character
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 
 	const FRotator newRot(0.0f, twoDimensionYaw, 0.0f);
 
-	CameraBoom->bUsePawnControlRotation = false;			//Will the spring arm use the Pawn's controller's rotation?
+	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->TargetArmLength = 1000.0f;
-	CameraBoom->SetAbsolute(false, true, false);			//Required if you want to rotate this Actor according to world rotation
-	CameraBoom->SetWorldRotation(newRot);					//Actually sets this Actor's world rotation
+	CameraBoom->SetAbsolute(false, true, false);
+	CameraBoom->SetWorldRotation(newRot);
 
 	FollowCamera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	//------------------------------------------------------------------------
+}
+
+void APlayer_Class_MovementShift::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (GetWorld())
+	{
+		GI = Cast<UGameInstance_Class>(GetGameInstance());
+
+		if (GI != nullptr)
+		{
+			GI->OnDimensionSwapped.AddDynamic(this, &APlayer_Class_MovementShift::DoSwapDimensionAction);
+		}
+	}
 }
 
 // Called when the game starts or when spawned
@@ -63,11 +75,9 @@ void APlayer_Class_MovementShift::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());	//Setting GameInstance (singleton). Don't do this in constructor.
-
 	if (GI != nullptr)
 	{
-		GI->OnDimensionSwapped.AddDynamic(this, &APlayer_Class_MovementShift::DoSwapDimensionAction);	//Delegate subscription
+		SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
 	}
 
 	//--------------Code below is for starting in 2D-------------------------
@@ -88,8 +98,6 @@ void APlayer_Class_MovementShift::SetupPlayerInputComponent(UInputComponent* Pla
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-//I am kind of confused at these next two functions' code.
-//I got it from a tutorial and I vaguely understand only.
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
 	if (bIsUsing3DControls)
@@ -120,16 +128,13 @@ void APlayer_Class_MovementShift::MoveRight(float fAxis)
 
 void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
-	UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
-
 	if (GI != nullptr)
 	{
 		GI->SwapDimensions();
 	}
 }
 
-//The method connected to the Game Instance's FOnDimensionSwapped delegate
-void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float baselineYPos)
+void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 {
 	if (bIsIn3D)
 	{
@@ -137,7 +142,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float base
 	}
 	else
 	{
-		TurnTo2D(baselineYPos);
+		TurnTo2D();
 	}
 }
 
@@ -156,7 +161,7 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	Controller->SetIgnoreLookInput(false);
 }
 
-void APlayer_Class_MovementShift::TurnTo2D(float baselineYPos)
+void APlayer_Class_MovementShift::TurnTo2D()
 {
 	bIsUsing3DControls = false;
 
@@ -171,8 +176,7 @@ void APlayer_Class_MovementShift::TurnTo2D(float baselineYPos)
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	Controller->SetIgnoreLookInput(true);
 
-	//moving character to 2D baseline. Only involves moving the Y Position of this actor
-	FVector NewPos = FVector(GetActorLocation().X, baselineYPos, GetActorLocation().Z);
+	FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
 	SetActorLocation(NewPos);
 }
 

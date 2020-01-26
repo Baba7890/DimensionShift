@@ -7,11 +7,9 @@
 #include "Engine/GameInstance.h"
 #include "GameInstance_Class.generated.h"
 
-//This below a forward declaration. It prevents circular dependency. Look for "Unreal Forward Declartion" on Google.
 class ALevel_Class_LevelBox;
 
-//This below is a delegate declartion. Don't mind the errors, Unreal has a lot of false errors. .A lot of true ones too...
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDimensionSwap, bool, bIsIn3D, float, baselineYPos);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDimensionSwap, bool, bIsIn3D);
 
 UCLASS()
 class DIMENSIONSHIFT_API UGameInstance_Class : public UGameInstance
@@ -28,7 +26,28 @@ private:
 
 public:
 	UGameInstance_Class();
+	
+	/**
+	 * This function is called by the player whenever the player is going to swap dimensions. Important function.
+	 */
 	void SwapDimensions();
+
+	/**
+	 * This function adds a LevelBox to this GameInstance;s LevelBoxes TArray.
+	 * @param - LevelBox -> The LevelBox to add
+	 */
 	void AddLevelBox(ALevel_Class_LevelBox* LevelBox);
+
 	int GetNoOfLevelBoxes();
+
+	/**
+	 * This function gets and returns the Y baseline location of the LevelBox the player is in.
+	 */
+	float GetPlayerInLevelBoxBaseline();
+
+	/**
+	 * This function clears all of the level boxes from the LevelBoxes TArray
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game Instance")
+	void ClearCurrentLevelBoxes();
 };
