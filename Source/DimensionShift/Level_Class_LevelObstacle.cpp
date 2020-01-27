@@ -20,7 +20,7 @@ ALevel_Class_LevelObstacle::ALevel_Class_LevelObstacle()
 	ObstacleCollider2D = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider2D"));
 	ObstacleCollider2D->SetupAttachment(RootComponent);
 	ObstacleCollider2D->SetMobility(EComponentMobility::Static);	
-	ObstacleCollider2D->SetGenerateOverlapEvents(false);
+	ObstacleCollider2D->SetGenerateOverlapEvents(true);
 	ObstacleCollider2D->SetAbsolute(false, false, true);
 
 	ObstacleCollider3D = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider3D"));
@@ -61,8 +61,10 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 		}
 	}
 
-	StandingOnTrigger->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnBeginOverlap);
-	StandingOnTrigger->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnEndOverlap);
+	StandingOnTrigger->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerBeginOverlap);
+	StandingOnTrigger->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerEndOverlap);
+
+	ObstacleCollider2D->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnColliderEndOverlap);
 
 	obstacleBaselineYPos = GetActorLocation().Y;
 
@@ -101,34 +103,66 @@ void ALevel_Class_LevelObstacle::SubscribeSwapMethodToGameInstance(UGameInstance
 		GI->OnDimensionSwapped.RemoveDynamic(this, &ALevel_Class_LevelObstacle::DoSwapDimensionAction);
 }
 
-void ALevel_Class_LevelObstacle::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
 		if (Player != nullptr)
 		{
-			Player->SetActorLocation(FVector(OtherActor->GetActorLocation().X, obstacleBaselineYPos, OtherActor->GetActorLocation().Z));
-			Player->bIsOnLevelObstacle = true;
+			if (!(Player->SetActorLocation(FVector(OtherActor->GetActorLocation().X, obstacleBaselineYPos, OtherActor->GetActorLocation().Z),
+				true)))
+			{
+				ObstacleCollider2D->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+
+				if (Player->GetActorLocation().Y < GetActorLocation().Y)
+				{
+					StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 0.65f);
+				}			
+			}
 		}
 	}
 }
 
-void ALevel_Class_LevelObstacle::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (GetWorld())
+	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		//We need the Game Instance's bIsIn3D in this case because setting the StandingOnTrigger to "NoCollision" profile with the player
-		//during the 2D->3D transition inside the trigger box calls OnEndOverlap.
-		UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
-
-		if (GI && !GI->bIsIn3D)
+		if (GetWorld())
 		{
-			if (Player != nullptr)
+			//We need the Game Instance's bIsIn3D in this case because setting the StandingOnTrigger to "NoCollision" profile with the player
+			//during the 2D->3D transition inside the trigger box calls OnEndOverlap.
+			UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
+
+			if (GI && !GI->bIsIn3D)
 			{
-				Player->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos,
-					OtherActor->GetActorLocation().Z));
-				Player->bIsOnLevelObstacle = false;
+				if (Player != nullptr)
+				{
+					Player->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos,
+						OtherActor->GetActorLocation().Z));
+				}
 			}
+		}
+	}
+}
+
+void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
+	{
+		if (GetWorld())
+		{
+			UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetGameInstance());
+
+			//Same reason as OnTriggerEndOverlap. We want the Collider to only call this when the world is in 2D
+			if (GI && !GI->bIsIn3D)
+			{
+				ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			}
+		}
+
+		if (Player->GetActorLocation().Y < GetActorLocation().Y)
+		{
+			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 1.0f);
 		}
 	}
 }

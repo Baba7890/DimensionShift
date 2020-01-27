@@ -154,6 +154,7 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	Controller->SetControlRotation(FRotator::ZeroRotator);
 	CameraBoom->TargetArmLength = 275.0f;
 	CameraBoom->SetAbsolute(false, false, false);
+	CameraBoom->bDoCollisionTest = false;
 
 	FollowCamera->ProjectionMode = ECameraProjectionMode::Perspective;
 
@@ -168,6 +169,7 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->TargetArmLength = 1000.0f;
 	CameraBoom->SetAbsolute(false, true, false);
+	CameraBoom->bDoCollisionTest = false;
 
 	FollowCamera->ProjectionMode = ECameraProjectionMode::Orthographic;
 
@@ -176,10 +178,7 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	Controller->SetIgnoreLookInput(true);
 
-	if (!bIsOnLevelObstacle)
-	{
-		FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
-		SetActorLocation(NewPos);
-	}
+	FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
+	SetActorLocation(NewPos);
 }
 

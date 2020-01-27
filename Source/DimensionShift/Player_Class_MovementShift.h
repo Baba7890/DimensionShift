@@ -29,7 +29,6 @@ public:
 		UCameraComponent* FollowCamera;
 
 	float twoDimensionYaw = -90.0f;
-	bool bIsOnLevelObstacle = false;
 
 private:
 	bool bIsUsing3DControls = false;
