@@ -29,6 +29,7 @@ public:
 		UCameraComponent* FollowCamera;
 
 	float twoDimensionYaw = -90.0f;
+	int noOfOverlappingTriggers = 0;
 
 private:
 	bool bIsUsing3DControls = false;

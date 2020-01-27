@@ -34,12 +34,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
 		UBoxComponent* StandingOnTrigger;
 
+	bool bIsPlayerInside = false;
+
 private:
 	ALevel_Class_LevelBox* ParentLevelBox;
 	APlayer_Class_MovementShift* Player;
+	UGameInstance_Class* GI;
 
 protected:
-	// Called when the game starts or when spawned
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
 public:	
@@ -51,10 +54,9 @@ public:
 
 	/**
 	 * This function adds a method to the game instance's OnDimensionSwapped delegate. Called from Level.cpp. I know, its messy.
-	 * @param - TGI -> The game instance that has the delegate to subscribe method to
 	 * @param - bShouldAdd -> Should the method be subscribed to the delegate or removed?
 	 */
-	void SubscribeSwapMethodToGameInstance(UGameInstance_Class* GI, bool bShouldAdd);
+	void SubscribeSwapMethodToGameInstance(bool bShouldAdd);
 
 	UFUNCTION()
 	void OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -65,4 +67,11 @@ public:
 
 	UFUNCTION()
 	void OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+private:
+	/**
+	 * Checks and moves ChosenActor to this obstacle's baseline.
+	 * @param - ChosenActor -> The AActor to be moved to this obstacle's baseline.
+	 */
+	void CheckAndMoveActorToBaseline(AActor* ChosenActor);
 };

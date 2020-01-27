@@ -78,7 +78,7 @@ void ALevel_Class_LevelBox::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, 
 
 					if (Obstacle != nullptr)
 					{
-						Obstacle->SubscribeSwapMethodToGameInstance(GI, true);
+						Obstacle->SubscribeSwapMethodToGameInstance(true);
 					}
 				}
 			}
@@ -102,7 +102,7 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 
 					if (Obstacle != nullptr)
 					{
-						Obstacle->SubscribeSwapMethodToGameInstance(GI, false);
+						Obstacle->SubscribeSwapMethodToGameInstance(false);
 					}
 				}
 			}
