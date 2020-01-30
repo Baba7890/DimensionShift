@@ -1,4 +1,4 @@
-// Script of main character
+// //This class includes player movement + dimension shifting (for the player)
 
 #pragma once
 
@@ -29,7 +29,7 @@ public:
 		UCameraComponent* FollowCamera;
 
 	float twoDimensionYaw = -90.0f;
-	int noOfOverlappingTriggers = 0;
+	int noOfOverlappingObstacleTrigs = 0;
 
 private:
 	bool bIsUsing3DControls = false;

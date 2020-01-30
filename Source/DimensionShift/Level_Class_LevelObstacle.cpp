@@ -57,6 +57,9 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 	}
 	else
 	{
+		//Performing initial setting due to world starting in 2D
+		//If bIsPlayerInBox, activate the 2D collider. If not, activate the 3D one. Since the colliders only change profile name when the player
+		//is in a Level Box IN 2D, obstacles in other level boxes must be set to 3D initially.
 		if (ParentLevelBox->bIsPlayerInBox)
 		{
 			ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
@@ -67,7 +70,8 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 			ObstacleCollider2D->SetCollisionProfileName(TEXT("NoCollision"));
 			ObstacleCollider3D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 		}
-
+		
+		//This trigger NEVER changes its profile name
 		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger"));
 	}
 
@@ -75,12 +79,9 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 	StandingOnTrigger->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerEndOverlap);
 	ObstacleCollider2D->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnColliderEndOverlap);
 
-	obstacleBaselineYPos = GetActorLocation().Y;
-
 	Player = Cast<APlayer_Class_MovementShift>(GetWorld()->GetFirstPlayerController()->GetCharacter());
 }
 
-// Called every frame
 void ALevel_Class_LevelObstacle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -89,7 +90,8 @@ void ALevel_Class_LevelObstacle::Tick(float DeltaTime)
 
 void ALevel_Class_LevelObstacle::DoSwapDimensionAction(bool bIsIn3D)
 {
-	//Is this performance intensive? I don't know.
+	//2D = ObstacleCollider2D blocks player and enemies; ObstacleCollider3D has no collision
+	//3D = ObstacleCollider3D blocks player and enemies; ObstacleCollider2D has no collision
 	if (bIsIn3D)
 	{
 		ObstacleCollider2D->SetCollisionProfileName(TEXT("NoCollision"));
@@ -125,8 +127,11 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 	{
 		bIsPlayerInside = true;
 
+		//Why does player use 'int' instead of a 'bool'? Because the player might be inside multiple level obstacle triggers at once.
+		//This is important in ensuring that the player does not go back to the level's baseline and stays on the obstacle baseline
+		//when the player jumps on this level obstacle
 		if (Player != nullptr)
-			Player->noOfOverlappingTriggers++;
+			Player->noOfOverlappingObstacleTrigs++;
 
 		if (GI && !GI->bIsIn3D)
 		{
@@ -142,15 +147,18 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 		bIsPlayerInside = false;
 
 		if (Player != nullptr)
-			Player->noOfOverlappingTriggers--;
+			Player->noOfOverlappingObstacleTrigs--;
 
-		if (GI && !GI->bIsIn3D)
+		//If the player leaves this trigger and is not overlapping anymore triggers
+		//then return the player back to the level box's baselineYPos
+		if (GI && !GI->bIsIn3D && Player->noOfOverlappingObstacleTrigs == 0)
 		{
 			OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos, OtherActor->GetActorLocation().Z));
 		}
 	}
 }
 
+//This method is required to circumvent the player being stuck inside a LevelObstacle and not being able to see through it
 void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
@@ -161,6 +169,7 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 			ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 		}
 
+		//If the player is behind the level obstacle, set opacity material param to 1.0f (no transparency))
 		if (Player->GetActorLocation().Y < GetActorLocation().Y)
 		{
 			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 1.0f);
@@ -170,10 +179,13 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 
 void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor)
 {
+	//If the ChosenActor cannot be moved to the location,
 	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineYPos, ChosenActor->GetActorLocation().Z), true)))
 	{
+		//Don't move the actor and set the obstacle to overlap the actor only, not block
 		ObstacleCollider2D->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 
+		//If the player is behind the level obstacle, set opacity material param to 0.65f (translucent))
 		if (ChosenActor->GetActorLocation().Y < GetActorLocation().Y)
 		{
 			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 0.65f);

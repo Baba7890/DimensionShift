@@ -1,4 +1,8 @@
-// The level box implementation Tan wanted
+//LevelBox is an Actor class that contains a trigger and a number of LevelObstacles.
+//Used for the following:
+//a) Adding itself to the GameInstance
+//b) Uses the trigger to check whether the player is inside of it
+//c) [Called from GameInstance] On dimension swapping to 2D, disables itself and its LevelObstacles when it does not contain the player
 
 #pragma once
 

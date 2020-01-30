@@ -1,3 +1,11 @@
+//LevelObstacle is a class that includes any Actor that will shift a player or enemy's position when landed on.
+//It contains four attached components: A StaticMesh and three BoxComponents, two colliders and one trigger.
+//Used for the following:
+//a) On 2D->3D dimension swapping, disables 2D collider and enables 3D collider
+//b) [Called in LevelBox] Subscribes itself to the GameInstance OnDimensionSwapped delegate
+//c) Moves player or enemy to its obstacle baseline if they enter trigger
+//d) Makes itself become translucent when the player is behind it in 2D
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -49,6 +57,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	//Will be called by game instance OnDimensionSwapped delegate
 	UFUNCTION()
 	void DoSwapDimensionAction(bool bIsIn3D);
 
@@ -71,6 +80,7 @@ public:
 private:
 	/**
 	 * Checks and moves ChosenActor to this obstacle's baseline.
+	 * + If the ChosenActor cannot move to the baseline, the ChosenActor is not moved, the obstacle allows the player to move inside of it and becomes translucent.
 	 * @param - ChosenActor -> The AActor to be moved to this obstacle's baseline.
 	 */
 	void CheckAndMoveActorToBaseline(AActor* ChosenActor);
