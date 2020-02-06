@@ -23,12 +23,17 @@ public:
 	APlayer_Class_MovementShift();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-		USpringArmComponent* CameraBoom;
+		USpringArmComponent* CameraBoom2D;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-		UCameraComponent* FollowCamera;
+		UCameraComponent* FollowCamera2D;
 
-	float twoDimensionYaw = -90.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+		USpringArmComponent* CameraBoom3D;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+		UCameraComponent* FollowCamera3D;
+
 	int noOfOverlappingObstacleTrigs = 0;
 
 private:

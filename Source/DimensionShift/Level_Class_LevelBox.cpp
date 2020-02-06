@@ -12,7 +12,7 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));
 	BoxCollider->SetBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 
-	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);	
+	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);
 	BoxCollider->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnEndOverlap);
 }
 

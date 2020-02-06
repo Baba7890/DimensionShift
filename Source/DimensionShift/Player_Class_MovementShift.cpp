@@ -17,42 +17,38 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	GetCharacterMovement()->GravityScale = 2.8f;
 	GetCharacterMovement()->MaxAcceleration = 10000.0f;
 	GetCharacterMovement()->GroundFriction = 100.0f;
-	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	GetCharacterMovement()->bEnablePhysicsInteraction = true;
 
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->SocketOffset.Z = 120.0f;
+	CameraBoom2D = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom2D"));
+	CameraBoom2D->SetupAttachment(RootComponent);
+	CameraBoom2D->SocketOffset.Z = 155.0f;
+	CameraBoom2D->bUsePawnControlRotation = false;
+	CameraBoom2D->TargetArmLength = 1000.0f;
+	CameraBoom2D->SetAbsolute(false, true, false);
+	CameraBoom2D->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));
+	CameraBoom2D->bDoCollisionTest = false;
 
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	FollowCamera->bUsePawnControlRotation = false;
-	FollowCamera->FieldOfView = 110.0f;
-	FollowCamera->OrthoWidth = 1560.0f;
+	FollowCamera2D = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera2D"));
+	FollowCamera2D->SetupAttachment(CameraBoom2D, USpringArmComponent::SocketName);
+	FollowCamera2D->bUsePawnControlRotation = false;
+	FollowCamera2D->OrthoWidth = 1920.0f;
+	FollowCamera2D->ProjectionMode = ECameraProjectionMode::Orthographic;
+
+	CameraBoom3D = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom3D"));
+	CameraBoom3D->SetupAttachment(RootComponent);
+	CameraBoom3D->SocketOffset.Z = 120.0f;
+	CameraBoom3D->bUsePawnControlRotation = true;
+	CameraBoom3D->TargetArmLength = 275.0f;
+
+	FollowCamera3D = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera3D"));
+	FollowCamera3D->SetupAttachment(CameraBoom3D, USpringArmComponent::SocketName);
+	FollowCamera3D->bUsePawnControlRotation = false;
+	FollowCamera3D->FieldOfView = 110.0f;
+
+	FollowCamera3D->SetActive(false);
 
 	Tags.Add(TEXT("Player"));
-
-	//--------------Code below is for starting in 3D-------------------------
-	/*
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-
-	CameraBoom->bUsePawnControlRotation = true;
-	CameraBoom->TargetArmLength = 275.0f;
-	bIsUsing3DControls = true;
-	*/
-	//------------------------------------------------------------------------
-
-	//--------------Code below is for starting in 2D-------------------------
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
-
-	const FRotator newRot(0.0f, twoDimensionYaw, 0.0f);
-
-	CameraBoom->bUsePawnControlRotation = false;
-	CameraBoom->TargetArmLength = 1000.0f;
-	CameraBoom->SetAbsolute(false, true, false);
-	CameraBoom->SetWorldRotation(newRot);
-
-	FollowCamera->ProjectionMode = ECameraProjectionMode::Orthographic;
-	//------------------------------------------------------------------------
 }
 
 void APlayer_Class_MovementShift::PostInitializeComponents()
@@ -80,9 +76,7 @@ void APlayer_Class_MovementShift::BeginPlay()
 		SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
 	}
 
-	//--------------Code below is for starting in 2D-------------------------
 	Controller->SetIgnoreLookInput(true);
-	//------------------------------------------------------------------------
 }
 
 // Called every frame
@@ -150,15 +144,14 @@ void APlayer_Class_MovementShift::TurnTo3D()
 {
 	bIsUsing3DControls = true;
 
-	CameraBoom->bUsePawnControlRotation = true;
-	Controller->SetControlRotation(FRotator::ZeroRotator);
-	CameraBoom->TargetArmLength = 275.0f;
-	CameraBoom->SetAbsolute(false, false, false);
-	CameraBoom->bDoCollisionTest = false;
-
-	FollowCamera->ProjectionMode = ECameraProjectionMode::Perspective;
+	//This here might not be as stable as I thought.
+	//The way this works is if I disable the current camera, the game will use AActor::CalcCamera() to find the next first camera component
+	//and set that camera as the new current camera. Sometimes though, it crashes...
+	FollowCamera3D->SetActive(true);
+	FollowCamera2D->SetActive(false);
 
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+	Controller->SetControlRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(false);
 }
 
@@ -166,19 +159,14 @@ void APlayer_Class_MovementShift::TurnTo2D()
 {
 	bIsUsing3DControls = false;
 
-	CameraBoom->bUsePawnControlRotation = false;
-	CameraBoom->TargetArmLength = 1000.0f;
-	CameraBoom->SetAbsolute(false, true, false);
-	CameraBoom->bDoCollisionTest = false;
-
-	FollowCamera->ProjectionMode = ECameraProjectionMode::Orthographic;
-
-	SetActorRotation(FRotator::ZeroRotator);
-
+	//This here might not be as stable as I thought.
+	FollowCamera2D->SetActive(true);
+	FollowCamera3D->SetActive(false);
+	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
+	SetActorRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(true);
 
-	//If the
 	if (noOfOverlappingObstacleTrigs == 0)
 	{
 		FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
