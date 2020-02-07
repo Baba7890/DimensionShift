@@ -36,7 +36,7 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 
 	CameraBoom3D = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom3D"));
 	CameraBoom3D->SetupAttachment(RootComponent);
-	CameraBoom3D->SocketOffset.Z = 120.0f;
+	CameraBoom3D->SocketOffset.Z = 155.0f;
 	CameraBoom3D->bUsePawnControlRotation = true;
 	CameraBoom3D->TargetArmLength = 275.0f;
 
@@ -45,7 +45,19 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	FollowCamera3D->bUsePawnControlRotation = false;
 	FollowCamera3D->FieldOfView = 110.0f;
 
-	FollowCamera3D->SetActive(false);
+	TransCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("TransCameraBoom"));
+	TransCameraBoom->SetupAttachment(RootComponent);
+	TransCameraBoom->bUsePawnControlRotation = false;
+	TransCameraBoom->TargetArmLength = transCamTargetArmLength2D;
+	TransCameraBoom->SocketOffset.Z = 155.0f;
+	TransCameraBoom->SetAbsolute(false, true, false);
+	TransCameraBoom->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));
+	TransCameraBoom->bDoCollisionTest = false;
+
+	TransitionCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TransitionCamera"));
+	TransitionCamera->SetupAttachment(TransCameraBoom, USpringArmComponent::SocketName);
+	TransitionCamera->bUsePawnControlRotation = false;
+	TransitionCamera->FieldOfView = transCamFieldOfView2D;
 
 	Tags.Add(TEXT("Player"));
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
@@ -76,6 +88,8 @@ void APlayer_Class_MovementShift::BeginPlay()
 		SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
 	}
 
+	FollowCamera3D->SetActive(false);
+	TransitionCamera->SetActive(false);
 	Controller->SetIgnoreLookInput(true);
 }
 
@@ -84,6 +98,7 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	PerformTransitionCameraMovement(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -94,29 +109,35 @@ void APlayer_Class_MovementShift::SetupPlayerInputComponent(UInputComponent* Pla
 
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
-	if (bIsUsing3DControls)
+	if (bCanPlayerMove)
 	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (bIsUsing3DControls)
+		{
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
-		AddMovementInput(Direction, fAxis);
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
+			AddMovementInput(Direction, fAxis);
+		}
 	}
 }
 
 void APlayer_Class_MovementShift::MoveRight(float fAxis)
 {
-	if (bIsUsing3DControls)
+	if (bCanPlayerMove)
 	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (bIsUsing3DControls)
+		{
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
-		AddMovementInput(Direction, fAxis);
-	}
-	else
-	{
-		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
+			AddMovementInput(Direction, fAxis);
+		}
+		else
+		{
+			AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
+		}
 	}
 }
 
@@ -132,23 +153,46 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 {
 	if (bIsIn3D)
 	{
-		TurnTo3D();
+		TransitionCamera->SetActive(true);
+		FollowCamera2D->SetActive(false);
+
+		bCanPlayerMove = false;
+
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo3D, swapDuration, false);
+		}
 	}
 	else
 	{
-		TurnTo2D();
+		TransitionCamera->SetActive(true);
+		TransitionCamera->SetWorldRotation(Controller->GetControlRotation());
+		FollowCamera3D->SetActive(false);
+
+		bCanPlayerMove = false;
+
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDuration, false);
+		}
+
+		//TurnTo2D();
 	}
 }
 
 void APlayer_Class_MovementShift::TurnTo3D()
 {
+	bCanPlayerMove = true;
+	currentLerpAlpha = 0.0f;
+	bHasFinishedViewLerp = false;
+
 	bIsUsing3DControls = true;
 
 	//This here might not be as stable as I thought.
 	//The way this works is if I disable the current camera, the game will use AActor::CalcCamera() to find the next first camera component
 	//and set that camera as the new current camera. Sometimes though, it crashes...
 	FollowCamera3D->SetActive(true);
-	FollowCamera2D->SetActive(false);
+	TransitionCamera->SetActive(false);
 
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	Controller->SetControlRotation(FRotator::ZeroRotator);
@@ -157,15 +201,20 @@ void APlayer_Class_MovementShift::TurnTo3D()
 
 void APlayer_Class_MovementShift::TurnTo2D()
 {
+	bCanPlayerMove = true;
+	currentLerpAlpha = 0.0f;
+	bHasFinishedViewLerp = false;
+
 	bIsUsing3DControls = false;
 
 	//This here might not be as stable as I thought.
 	FollowCamera2D->SetActive(true);
-	FollowCamera3D->SetActive(false);
+	TransitionCamera->SetActive(false);
 	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	SetActorRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(true);
+	Controller->SetControlRotation(FRotator::ZeroRotator);
 
 	if (noOfOverlappingObstacleTrigs == 0)
 	{
@@ -174,3 +223,61 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	}
 }
 
+void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTime)
+{
+	//2D -> 3D Transition Camera movement
+	if (!bCanPlayerMove && !bIsUsing3DControls)
+	{
+		if (!bHasFinishedViewLerp)
+		{
+			TransitionCamera->SetFieldOfView(FMath::Lerp(transCamFieldOfView2D, transCamFieldOfView3D, currentLerpAlpha));
+			TransCameraBoom->TargetArmLength = FMath::Lerp(transCamTargetArmLength2D, transCamTargetArmLength3D, currentLerpAlpha);
+
+			if (currentLerpAlpha == 1.0f)
+			{
+				bHasFinishedViewLerp = true;
+				currentLerpAlpha = 0.0f;
+			}
+
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
+		}
+		else
+		{
+			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(FRotator(0.0f, -90.0f, 0.0f)), FQuat(FRotator(FRotator::ZeroRotator)),
+				currentLerpAlpha));
+
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
+		}
+	}
+	else if (!bCanPlayerMove && bIsUsing3DControls)	//3D -> 2D Transition Camera movement
+	{
+		if (!bHasFinishedViewLerp)
+		{
+			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(Controller->GetControlRotation()), FQuat(FRotator(0.0f, -90.0f, 0.0f)),
+				currentLerpAlpha));
+
+			if (currentLerpAlpha == 1.0f)
+			{
+				bHasFinishedViewLerp = true;
+				currentLerpAlpha = 0.0f;
+			}
+
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
+		}
+		else
+		{
+			TransitionCamera->SetFieldOfView(FMath::Lerp(transCamFieldOfView3D, transCamFieldOfView2D, currentLerpAlpha));
+			TransCameraBoom->TargetArmLength = FMath::Lerp(transCamTargetArmLength3D, transCamTargetArmLength2D, currentLerpAlpha);
+
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
+		}
+	}
+}
+
+//Since the enemies + projectiles in the game also must stop during the transition, I need to put something in game instance
+//LevelBox needs to hide itself AFTER the transition when 3D -> 2D
+//LevelBox needs to enable itself BEFORE the transition when 2D -> 3D

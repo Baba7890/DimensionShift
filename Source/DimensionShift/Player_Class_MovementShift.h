@@ -10,6 +10,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/Controller.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "TimerManager.h"
 #include "Player_Class_MovementShift.generated.h"
 
 class UGameInstance_Class;
@@ -34,11 +36,40 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 		UCameraComponent* FollowCamera3D;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+		USpringArmComponent* TransCameraBoom;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+		UCameraComponent* TransitionCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
+		bool bCanPlayerMove = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+		float transCamTargetArmLength3D = 275.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+		float transCamTargetArmLength2D = 350000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+		float transCamFieldOfView3D = 110.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+		float transCamFieldOfView2D = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+		float swapDuration = 2.0f;
+
 	int noOfOverlappingObstacleTrigs = 0;
 
 private:
 	bool bIsUsing3DControls = false;
+
 	UGameInstance_Class* GI;
+	FTimerHandle DimensionTimerHandle;
+
+	float currentLerpAlpha = 0.0f;
+	bool bHasFinishedViewLerp = false;
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -74,4 +105,9 @@ private:
 	 * Called when the world swaps to 2D.
 	 */
 	void TurnTo2D();
+
+	/**
+	 * Performs the transition camera movement from 2D -> 3D and vice versa
+	 */
+	void PerformTransitionCameraMovement(float deltaTime);
 };
