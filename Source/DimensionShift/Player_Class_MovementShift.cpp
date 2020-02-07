@@ -166,7 +166,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 	else
 	{
 		TransitionCamera->SetActive(true);
-		TransitionCamera->SetWorldRotation(Controller->GetControlRotation());
+		TransCameraBoom->SetWorldRotation(Controller->GetControlRotation());
 		FollowCamera3D->SetActive(false);
 
 		bCanPlayerMove = false;
@@ -175,8 +175,6 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 		{
 			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDuration, false);
 		}
-
-		//TurnTo2D();
 	}
 }
 
@@ -188,9 +186,7 @@ void APlayer_Class_MovementShift::TurnTo3D()
 
 	bIsUsing3DControls = true;
 
-	//This here might not be as stable as I thought.
-	//The way this works is if I disable the current camera, the game will use AActor::CalcCamera() to find the next first camera component
-	//and set that camera as the new current camera. Sometimes though, it crashes...
+	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera3D->SetActive(true);
 	TransitionCamera->SetActive(false);
 
@@ -207,13 +203,16 @@ void APlayer_Class_MovementShift::TurnTo2D()
 
 	bIsUsing3DControls = false;
 
-	//This here might not be as stable as I thought.
+	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera2D->SetActive(true);
 	TransitionCamera->SetActive(false);
 	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	SetActorRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(true);
+
+	//This is located here instead of TurnTo3D() to prevent the 3D camera from showing the previous 3D camera rotation for 1 frame before 
+	//the player swapped to 2D. So we set the control rotation to zero beforehand
 	Controller->SetControlRotation(FRotator::ZeroRotator);
 
 	if (noOfOverlappingObstacleTrigs == 0)
@@ -239,7 +238,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 				currentLerpAlpha = 0.0f;
 			}
 
-			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));	//Calculation for x seconds between 0.0f and 1.0f
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 		else
