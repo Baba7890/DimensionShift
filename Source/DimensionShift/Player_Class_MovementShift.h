@@ -1,4 +1,4 @@
-// //This class includes player movement + dimension shifting (for the player)
+//This class includes player movement + dimension shifting (for the player) + transition camera movement effect
 
 #pragma once
 
@@ -85,14 +85,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Dimension Swap")
 	void UseSwapDimensionAbility();
 
-	//Will be called by game instance OnDimensionSwapped delegate
+	/**
+	 * This method is played when the world switches from 2D -> 3D or vice versa
+	 * + This method contains a timer that calls TurnTo2D() and TurnTo3D() after a set amount of time
+	 * LOC - This method will be called the Game Instance's OnDimensionSwapped delegate
+	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
+	 */
 	UFUNCTION()
 	void DoSwapDimensionAction(bool bIsIn3D);
 
 private:
+	/**
+	 * Moves the player forward, backwards in 3D
+	 * @param - fAxis -> The movement input value, between 0.0f and 1.0f
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
 	void MoveForward(float fAxis);
 
+	/**
+	 * Moves the player right, left in 3D AND 2D
+	 * @param - fAxis -> The movement input value, between 0.0f and 1.0f
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
 	void MoveRight(float fAxis);
 
@@ -108,6 +121,7 @@ private:
 
 	/**
 	 * Performs the transition camera movement from 2D -> 3D and vice versa
+	 * @param - deltaTime -> The time taken for the game to go from the previous frame to the current frame 
 	 */
 	void PerformTransitionCameraMovement(float deltaTime);
 };

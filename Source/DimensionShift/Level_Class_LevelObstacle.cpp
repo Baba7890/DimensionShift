@@ -128,8 +128,8 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 		bIsPlayerInside = true;
 
 		//Why does player use 'int' instead of a 'bool'? Because the player might be inside multiple level obstacle triggers at once.
-		//This is important in ensuring that the player does not go back to the level's baseline and stays on the obstacle baseline
-		//when the player jumps on this level obstacle
+		//This is important in ensuring that the player doesn't accidentally teleport to the level box's baseline instead of one of the
+		//level obstacle's baseline.
 		if (Player != nullptr)
 			Player->noOfOverlappingObstacleTrigs++;
 

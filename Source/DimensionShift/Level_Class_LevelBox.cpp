@@ -43,7 +43,6 @@ void ALevel_Class_LevelBox::PostInitializeComponents()
 	}
 }
 
-// Called when the game starts or when spawned
 void ALevel_Class_LevelBox::BeginPlay()
 {
 	Super::BeginPlay();
@@ -54,7 +53,6 @@ void ALevel_Class_LevelBox::BeginPlay()
 	}
 }
 
-// Called every frame
 void ALevel_Class_LevelBox::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -63,7 +61,6 @@ void ALevel_Class_LevelBox::Tick(float DeltaTime)
 
 void ALevel_Class_LevelBox::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	//Notice the tag condition. Remember the tag delcaration in the player constructor?
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor->ActorHasTag("Player")))
 	{
 		bIsPlayerInBox = true;
