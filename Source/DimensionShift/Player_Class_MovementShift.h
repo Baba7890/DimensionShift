@@ -90,9 +90,10 @@ public:
 	 * + This method contains a timer that calls TurnTo2D() and TurnTo3D() after a set amount of time
 	 * LOC - This method will be called the Game Instance's OnDimensionSwapped delegate
 	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
+	 * @param - swapDura -> The duration it takes to swap between 2D -> 3D or vice versa.
 	 */
 	UFUNCTION()
-	void DoSwapDimensionAction(bool bIsIn3D);
+	void DoSwapDimensionAction(bool bIsIn3D, float swapDura);
 
 private:
 	/**

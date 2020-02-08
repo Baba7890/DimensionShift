@@ -107,6 +107,13 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 	}
 }
 
+void ALevel_Class_LevelBox::DoDimensionSwapAction(bool bIsIn3D, float swapDuration)
+{
+	//Is this intensive?
+	DimensionTimerDelegate.BindUFunction(this, FName("EnableLevelBox"), bIsIn3D);
+	GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, DimensionTimerDelegate, swapDuration / 2.0f, false);
+}
+
 void ALevel_Class_LevelBox::EnableLevelBox(bool bIsIn3D)
 {
 	UObject_Class_HelperStatics::EnableActor(this, bIsIn3D);

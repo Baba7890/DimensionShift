@@ -22,11 +22,14 @@ void UGameInstance_Class::SwapDimensions()
 			if (LevelBoxes[i]->bIsPlayerInBox && !hasFoundPlayerLevelBox)
 				hasFoundPlayerLevelBox = true;
 			else
-				LevelBoxes[i]->EnableLevelBox(bIsIn3D);
+				LevelBoxes[i]->DoDimensionSwapAction(bIsIn3D, swapDuration);
 		}
 	}
 
-	OnDimensionSwapped.Broadcast(bIsIn3D);
+	if (OnDimensionSwapped.IsBound())
+	{
+		OnDimensionSwapped.Broadcast(bIsIn3D, swapDuration);
+	}
 }
 
 void UGameInstance_Class::AddLevelBox(ALevel_Class_LevelBox* LevelBox)

@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
+#include "TimerManager.h"
 #include "Level_Class_LevelBox.generated.h"
 
 class UGameInstance_Class;
@@ -33,6 +34,9 @@ private:
 	TArray<AActor*> AttachedObjects;
 	UGameInstance_Class* GI;
 
+	FTimerHandle DimensionTimerHandle;
+	FTimerDelegate DimensionTimerDelegate;
+
 protected:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
@@ -48,9 +52,19 @@ public:
 	void OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	/**
+	 * This method is played when the world switches from 2D -> 3D or vice versa
+	 * + This method calls EnableLevelBox() after a certain amount of time.
+	 * + Unlike many other Actors, LevelBox's DoDimensionSwapAction is NOT connected to the GameInstance's delegate
+	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
+	 * @param - swapDuration -> The duration it takes to swap between 2D -> 3D or vice versa.
+	 */
+	void DoDimensionSwapAction(bool bIsIn3D, float swapDuration);
+
+	/**
 	 * This function enables/disables this level box along with its attached actors.
 	 * Useful when the game is in 2D and we only want one of the level boxes to be active while the rest are deactivated
-	 * @param - bIsIn2D -> Is the game in 2D or 3D? 2D = True, 3D = False
-	*/
-	void EnableLevelBox(bool bIsIn2D);
+	 * @param - bIsIn3D -> Is the world in 3D? If so, enable this LevelBox. If not, disable it...unless the player is in it
+	 */
+	UFUNCTION()
+	void EnableLevelBox(bool bIsIn3D);
 };

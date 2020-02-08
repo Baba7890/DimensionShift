@@ -9,7 +9,7 @@
 
 class ALevel_Class_LevelBox;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDimensionSwap, bool, bIsIn3D);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDimensionSwap, bool, bIsIn3D, float, swapDuration);
 
 UCLASS()
 class DIMENSIONSHIFT_API UGameInstance_Class : public UGameInstance
@@ -19,6 +19,8 @@ class DIMENSIONSHIFT_API UGameInstance_Class : public UGameInstance
 public:
 	bool bIsIn3D = false;
 	FOnDimensionSwap OnDimensionSwapped;
+
+	float swapDuration = 2.0f;
 
 private:
 	//This is how we will declare Arrays

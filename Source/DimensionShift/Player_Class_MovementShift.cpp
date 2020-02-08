@@ -74,6 +74,7 @@ void APlayer_Class_MovementShift::PostInitializeComponents()
 		if (GI != nullptr)
 		{
 			GI->OnDimensionSwapped.AddDynamic(this, &APlayer_Class_MovementShift::DoSwapDimensionAction);
+			GI->swapDuration = this->swapDuration;
 		}
 	}
 }
@@ -149,7 +150,7 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 	}
 }
 
-void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
+void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swapDura)
 {
 	if (bIsIn3D)
 	{
@@ -160,7 +161,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo3D, swapDuration, false);
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo3D, swapDura, false);
 		}
 	}
 	else
@@ -173,7 +174,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D)
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDuration, false);
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDura, false);
 		}
 	}
 }
@@ -238,7 +239,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 				currentLerpAlpha = 0.0f;
 			}
 
-			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));	//Calculation for x seconds between 0.0f and 1.0f
+			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));	//Calculation for x seconds between 0.0f and 1.0f
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 		else
@@ -246,7 +247,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(FRotator(0.0f, -90.0f, 0.0f)), FQuat(FRotator(FRotator::ZeroRotator)),
 				currentLerpAlpha));
 
-			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}
@@ -263,7 +264,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 				currentLerpAlpha = 0.0f;
 			}
 
-			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 		else
@@ -271,7 +272,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			TransitionCamera->SetFieldOfView(FMath::Lerp(transCamFieldOfView3D, transCamFieldOfView2D, currentLerpAlpha));
 			TransCameraBoom->TargetArmLength = FMath::Lerp(transCamTargetArmLength3D, transCamTargetArmLength2D, currentLerpAlpha);
 
-			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}

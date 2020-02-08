@@ -75,6 +75,12 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger"));
 	}
 
+	if (bDoesTriggerUseColliderScale)
+	{
+		StandingOnTrigger->SetWorldScale3D(FVector(ObstacleCollider2D->GetComponentScale().X - 0.3f, ObstacleCollider2D->GetComponentScale().Y,
+			ObstacleCollider2D->GetComponentScale().Z + 0.3f));
+	}
+
 	StandingOnTrigger->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerBeginOverlap);
 	StandingOnTrigger->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerEndOverlap);
 	ObstacleCollider2D->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnColliderEndOverlap);
@@ -88,7 +94,7 @@ void ALevel_Class_LevelObstacle::Tick(float DeltaTime)
 
 }
 
-void ALevel_Class_LevelObstacle::DoSwapDimensionAction(bool bIsIn3D)
+void ALevel_Class_LevelObstacle::DoSwapDimensionAction(bool bIsIn3D, float swapDuration)
 {
 	//2D = ObstacleCollider2D blocks player and enemies; ObstacleCollider3D has no collision
 	//3D = ObstacleCollider3D blocks player and enemies; ObstacleCollider2D has no collision
@@ -169,7 +175,6 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 			ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 		}
 
-		//If the player is behind the level obstacle, set opacity material param to 1.0f (no transparency))
 		if (Player->GetActorLocation().Y < GetActorLocation().Y)
 		{
 			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 1.0f);
@@ -179,13 +184,10 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 
 void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor)
 {
-	//If the ChosenActor cannot be moved to the location,
 	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineYPos, ChosenActor->GetActorLocation().Z), true)))
 	{
-		//Don't move the actor and set the obstacle to overlap the actor only, not block
 		ObstacleCollider2D->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 
-		//If the player is behind the level obstacle, set opacity material param to 0.65f (translucent))
 		if (ChosenActor->GetActorLocation().Y < GetActorLocation().Y)
 		{
 			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 0.65f);
