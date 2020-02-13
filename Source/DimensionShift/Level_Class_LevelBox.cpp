@@ -12,7 +12,7 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));
 	BoxCollider->SetBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 
-	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);	
+	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);
 	BoxCollider->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnEndOverlap);
 }
 
@@ -43,7 +43,6 @@ void ALevel_Class_LevelBox::PostInitializeComponents()
 	}
 }
 
-// Called when the game starts or when spawned
 void ALevel_Class_LevelBox::BeginPlay()
 {
 	Super::BeginPlay();
@@ -54,7 +53,6 @@ void ALevel_Class_LevelBox::BeginPlay()
 	}
 }
 
-// Called every frame
 void ALevel_Class_LevelBox::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -63,7 +61,6 @@ void ALevel_Class_LevelBox::Tick(float DeltaTime)
 
 void ALevel_Class_LevelBox::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	//Notice the tag condition. Remember the tag delcaration in the player constructor?
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor->ActorHasTag("Player")))
 	{
 		bIsPlayerInBox = true;
@@ -108,6 +105,13 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 			}
 		}
 	}
+}
+
+void ALevel_Class_LevelBox::DoDimensionSwapAction(bool bIsIn3D, float swapDuration)
+{
+	//Is this intensive?
+	DimensionTimerDelegate.BindUFunction(this, FName("EnableLevelBox"), bIsIn3D);
+	GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, DimensionTimerDelegate, swapDuration / 2.0f, false);
 }
 
 void ALevel_Class_LevelBox::EnableLevelBox(bool bIsIn3D)
