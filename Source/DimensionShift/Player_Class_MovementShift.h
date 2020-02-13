@@ -24,7 +24,6 @@ class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 public:
 	APlayer_Class_MovementShift();
 
-	#pragma region Camera Variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 		USpringArmComponent* CameraBoom2D;
 
@@ -43,6 +42,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 		UCameraComponent* TransitionCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
+		bool bCanPlayerMove = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 		float transCamTargetArmLength3D = 275.0f;
 
@@ -54,13 +56,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 		float transCamFieldOfView2D = 0.3f;
-	#pragma endregion
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 		float swapDuration = 2.0f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
-		bool bCanPlayerMove = true;
 
 	int noOfOverlappingObstacleTrigs = 0;
 
