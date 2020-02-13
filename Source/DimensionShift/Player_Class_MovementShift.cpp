@@ -110,35 +110,29 @@ void APlayer_Class_MovementShift::SetupPlayerInputComponent(UInputComponent* Pla
 
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
-	if (bCanPlayerMove)
+	if (bIsUsing3DControls)
 	{
-		if (bIsUsing3DControls)
-		{
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
-			AddMovementInput(Direction, fAxis);
-		}
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
+		AddMovementInput(Direction, fAxis);
 	}
 }
 
 void APlayer_Class_MovementShift::MoveRight(float fAxis)
 {
-	if (bCanPlayerMove)
+	if (bIsUsing3DControls)
 	{
-		if (bIsUsing3DControls)
-		{
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
-			AddMovementInput(Direction, fAxis);
-		}
-		else
-		{
-			AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
-		}
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
+		AddMovementInput(Direction, fAxis);
+	}
+	else
+	{
+		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
 	}
 }
 
@@ -277,7 +271,3 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 		}
 	}
 }
-
-//Since the enemies + projectiles in the game also must stop during the transition, I need to put something in game instance
-//LevelBox needs to hide itself AFTER the transition when 3D -> 2D
-//LevelBox needs to enable itself BEFORE the transition when 2D -> 3D
