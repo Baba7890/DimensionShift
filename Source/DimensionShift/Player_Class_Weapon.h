@@ -7,6 +7,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "TimerManager.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Player_Class_Weapon.generated.h"
 
 class AProjectile_Class_ProjBase;
