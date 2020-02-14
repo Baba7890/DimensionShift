@@ -1,5 +1,6 @@
 #include "Player_Class_MovementShift.h"
 #include "GameInstance_Class.h"
+#include "Player_Class_Weapon.h"
 
 APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 {
@@ -18,6 +19,8 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	GetCharacterMovement()->MaxAcceleration = 10000.0f;
 	GetCharacterMovement()->GroundFriction = 100.0f;
 	GetCharacterMovement()->bEnablePhysicsInteraction = true;
+
+	#pragma region Camera Setup
 
 	CameraBoom2D = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom2D"));
 	CameraBoom2D->SetupAttachment(RootComponent);
@@ -59,6 +62,8 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	TransitionCamera->bUsePawnControlRotation = false;
 	TransitionCamera->FieldOfView = transCamFieldOfView2D;
 
+	#pragma endregion
+
 	Tags.Add(TEXT("Player"));
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 }
@@ -79,7 +84,6 @@ void APlayer_Class_MovementShift::PostInitializeComponents()
 	}
 }
 
-// Called when the game starts or when spawned
 void APlayer_Class_MovementShift::BeginPlay()
 {
 	Super::BeginPlay();
@@ -91,10 +95,19 @@ void APlayer_Class_MovementShift::BeginPlay()
 
 	FollowCamera3D->SetActive(false);
 	TransitionCamera->SetActive(false);
-	Controller->SetIgnoreLookInput(true);
+	Controller->SetIgnoreLookInput(true);	
+
+	if (GetWorld())
+	{
+		FActorSpawnParameters WeaponActorSpawnParams;
+		WeaponActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+		Weapon = GetWorld()->SpawnActor<APlayer_Class_Weapon>(WeaponActor, WeaponActorSpawnParams);
+		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+		Weapon->PlayerOwner = this;
+	}
 }
 
-// Called every frame
 void APlayer_Class_MovementShift::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -102,15 +115,9 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 	PerformTransitionCameraMovement(DeltaTime);
 }
 
-// Called to bind functionality to input
-void APlayer_Class_MovementShift::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
-	if (bIsUsing3DControls)
+	if (GI->bIsIn3D)
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -122,7 +129,7 @@ void APlayer_Class_MovementShift::MoveForward(float fAxis)
 
 void APlayer_Class_MovementShift::MoveRight(float fAxis)
 {
-	if (bIsUsing3DControls)
+	if (GI->bIsIn3D)
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -138,9 +145,13 @@ void APlayer_Class_MovementShift::MoveRight(float fAxis)
 
 void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
-	if (GI != nullptr)
+	if (Weapon != nullptr)
 	{
-		GI->SwapDimensions();
+		if (!Weapon->bIsShooting)
+		{
+			if (GI != nullptr)
+				GI->SwapDimensions();
+		}
 	}
 }
 
@@ -179,8 +190,6 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
-	bIsUsing3DControls = true;
-
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera3D->SetActive(true);
 	TransitionCamera->SetActive(false);
@@ -195,8 +204,6 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	bCanPlayerMove = true;
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
-
-	bIsUsing3DControls = false;
 
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera2D->SetActive(true);
@@ -220,7 +227,7 @@ void APlayer_Class_MovementShift::TurnTo2D()
 void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTime)
 {
 	//2D -> 3D Transition Camera movement
-	if (!bCanPlayerMove && !bIsUsing3DControls)
+	if (!bCanPlayerMove && GI->bIsIn3D)
 	{
 		if (!bHasFinishedViewLerp)
 		{
@@ -245,7 +252,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}
-	else if (!bCanPlayerMove && bIsUsing3DControls)	//3D -> 2D Transition Camera movement
+	else if (!bCanPlayerMove && !GI->bIsIn3D)	//3D -> 2D Transition Camera movement
 	{
 		if (!bHasFinishedViewLerp)
 		{

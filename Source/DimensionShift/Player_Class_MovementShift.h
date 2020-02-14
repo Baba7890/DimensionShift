@@ -12,9 +12,11 @@
 #include "GameFramework/Controller.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "TimerManager.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Player_Class_MovementShift.generated.h"
 
 class UGameInstance_Class;
+class APlayer_Class_Weapon;
 
 UCLASS()
 class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
@@ -64,14 +66,23 @@ public:
 
 	int noOfOverlappingObstacleTrigs = 0;
 
-private:
-	bool bIsUsing3DControls = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+		TSubclassOf<APlayer_Class_Weapon> WeaponActor;
 
+	bool bHasGun = true;
+
+private:
 	UGameInstance_Class* GI;
 	FTimerHandle DimensionTimerHandle;
 
+	#pragma region Camera Variables
+
 	float currentLerpAlpha = 0.0f;
 	bool bHasFinishedViewLerp = false;
+
+	#pragma endregion
+
+	APlayer_Class_Weapon* Weapon;
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -79,7 +90,6 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/**
 	 * Called when the player uses his dimension swap ability.
