@@ -17,7 +17,9 @@ class DIMENSIONSHIFT_API UGameInstance_Class : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsIn3D = false;
+
 	FOnDimensionSwap OnDimensionSwapped;
 
 	float swapDuration = 2.0f;
