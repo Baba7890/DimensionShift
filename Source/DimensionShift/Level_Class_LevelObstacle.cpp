@@ -4,8 +4,6 @@
 #include "Level_Class_LevelBox.h"
 #include "GameInstance_Class.h"
 #include "Player_Class_MovementShift.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/Character.h"
 
 ALevel_Class_LevelObstacle::ALevel_Class_LevelObstacle()
 {
@@ -184,7 +182,19 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 
 void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor)
 {
-	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineYPos, ChosenActor->GetActorLocation().Z), true)))
+	float obstacleBaselineWorldYPos;
+	
+	if (bDoesBaselineUseObstacleCenter)
+	{
+		obstacleBaselineWorldYPos = GetActorLocation().Y;
+	}
+	else
+	{
+		//Converting local location to world location
+		obstacleBaselineWorldYPos = ParentLevelBox->GetActorLocation().Y + (obstacleBaselineLocalYPos * ParentLevelBox->GetActorScale3D().Y);
+	}
+
+	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineWorldYPos, ChosenActor->GetActorLocation().Z), true)))
 	{
 		ObstacleCollider2D->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 

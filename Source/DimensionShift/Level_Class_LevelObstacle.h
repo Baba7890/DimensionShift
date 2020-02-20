@@ -12,6 +12,9 @@
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Character.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Level_Class_LevelObstacle.generated.h"
 
 class ALevel_Class_LevelBox;
@@ -28,7 +31,7 @@ public:
 	ALevel_Class_LevelObstacle();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
-		float obstacleBaselineYPos;
+		float obstacleBaselineLocalYPos;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
 		UStaticMeshComponent* StaticMesh;
@@ -41,6 +44,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
 		UBoxComponent* StandingOnTrigger;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
+		bool bDoesBaselineUseObstacleCenter = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
 		bool bDoesTriggerUseColliderScale = true;

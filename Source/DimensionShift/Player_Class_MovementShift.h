@@ -84,6 +84,12 @@ private:
 
 	APlayer_Class_Weapon* Weapon;
 
+	//A reference to the player's ORIGINAL gravity scale. (Since the gravity scale will be changed, we need this reference)
+	float baseGravityScale = 0.0f;
+
+	//The velocity to save when the player switches dimensions so we can apply the same velocity on the player post-dimension swap
+	FVector PreDimensionSwapVelocity;
+
 protected:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;

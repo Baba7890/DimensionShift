@@ -20,6 +20,8 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	GetCharacterMovement()->GroundFriction = 100.0f;
 	GetCharacterMovement()->bEnablePhysicsInteraction = true;
 
+	baseGravityScale = GetCharacterMovement()->GravityScale;
+
 	#pragma region Camera Setup
 
 	CameraBoom2D = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom2D"));
@@ -157,6 +159,10 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 
 void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swapDura)
 {
+	PreDimensionSwapVelocity = GetCharacterMovement()->Velocity;
+	GetCharacterMovement()->GravityScale = 0.0f;
+	GetCharacterMovement()->StopMovementImmediately();
+
 	if (bIsIn3D)
 	{
 		TransitionCamera->SetActive(true);
@@ -190,6 +196,9 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
+	GetCharacterMovement()->GravityScale = baseGravityScale;
+	GetCharacterMovement()->Velocity = PreDimensionSwapVelocity;
+
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera3D->SetActive(true);
 	TransitionCamera->SetActive(false);
@@ -204,6 +213,9 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	bCanPlayerMove = true;
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
+
+	GetCharacterMovement()->GravityScale = baseGravityScale;
+	GetCharacterMovement()->Velocity = PreDimensionSwapVelocity;
 
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera2D->SetActive(true);
