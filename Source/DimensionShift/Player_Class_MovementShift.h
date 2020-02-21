@@ -17,6 +17,7 @@
 
 class UGameInstance_Class;
 class APlayer_Class_Weapon;
+class ALevel_Class_LevelObstacle;
 
 UCLASS()
 class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
@@ -70,6 +71,8 @@ public:
 		TSubclassOf<APlayer_Class_Weapon> WeaponActor;
 
 	bool bHasGun = true;
+
+	TArray<ALevel_Class_LevelObstacle*> LevelObstaclesInside;
 
 private:
 	UGameInstance_Class* GI;

@@ -135,11 +135,35 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 		//This is important in ensuring that the player doesn't accidentally teleport to the level box's baseline instead of one of the
 		//level obstacle's baseline.
 		if (Player != nullptr)
-			Player->noOfOverlappingObstacleTrigs++;
-
-		if (GI && !GI->bIsIn3D)
 		{
-			CheckAndMoveActorToBaseline(OtherActor);
+			if (Player->LevelObstaclesInside.Num() > 0)
+			{
+				int highestPriority = -1;
+
+				for (int i = 0; i < Player->LevelObstaclesInside.Num(); i++)
+				{
+					if (Player->LevelObstaclesInside[i] != nullptr)
+					{
+						if (Player->LevelObstaclesInside[i]->priorityOverPlayerPosition > highestPriority)
+						{
+							highestPriority = Player->LevelObstaclesInside[i]->priorityOverPlayerPosition;
+						}
+					}
+				}
+
+				priorityOverPlayerPosition = highestPriority + 1;
+			}
+			else
+			{
+				priorityOverPlayerPosition = 1;
+			}
+			
+			Player->LevelObstaclesInside.Add(this);
+
+			if (GI && !GI->bIsIn3D)
+			{
+				CheckAndMoveActorToBaseline(OtherActor);
+			}
 		}	
 	}
 }
@@ -151,13 +175,48 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 		bIsPlayerInside = false;
 
 		if (Player != nullptr)
-			Player->noOfOverlappingObstacleTrigs--;
-
-		//If the player leaves this trigger and is not overlapping anymore triggers
-		//then return the player back to the level box's baselineYPos
-		if (GI && !GI->bIsIn3D && Player->noOfOverlappingObstacleTrigs == 0)
 		{
-			OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos, OtherActor->GetActorLocation().Z));
+			if (GI && !GI->bIsIn3D)
+			{
+				//=====================
+				//This code only runs in 2D
+				if (Player->LevelObstaclesInside.Num() > 1)
+				{
+					ALevel_Class_LevelObstacle* OtherObstacle = nullptr;
+
+					for (int i = 0; i < Player->LevelObstaclesInside.Num(); i++)
+					{
+						if (Player->LevelObstaclesInside[i] != nullptr && Player->LevelObstaclesInside[i] != this)
+						{
+							if (OtherObstacle != nullptr)
+							{
+								if (Player->LevelObstaclesInside[i]->priorityOverPlayerPosition > OtherObstacle->priorityOverPlayerPosition)
+								{
+									OtherObstacle = Player->LevelObstaclesInside[i];
+								}
+							}
+							else
+							{
+								OtherObstacle = Player->LevelObstaclesInside[i];
+							}
+						}
+					}
+
+					if (OtherObstacle->priorityOverPlayerPosition < priorityOverPlayerPosition)
+					{
+						OtherObstacle->CheckAndMoveActorToBaseline(Player);
+					}
+				}
+				else
+				{
+					OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos,
+						OtherActor->GetActorLocation().Z));
+				}
+				//=========================
+			}
+			
+			priorityOverPlayerPosition = -1;
+			Player->LevelObstaclesInside.Remove(this);
 		}
 	}
 }
@@ -167,17 +226,13 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		//Same reason as OnTriggerEndOverlap. We want the Collider to only call this when the world is in 2D
-		if (GI && !GI->bIsIn3D)
-		{
-			ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-		}
-
-		if (Player->GetActorLocation().Y < GetActorLocation().Y)
-		{
-			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 1.0f);
-		}
+		SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic"), 1.0f);
 	}
+}
+
+int ALevel_Class_LevelObstacle::SetPriorityOverPlayerPosition()
+{
+	return priorityOverPlayerPosition;
 }
 
 void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor)
@@ -196,12 +251,20 @@ void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor
 
 	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineWorldYPos, ChosenActor->GetActorLocation().Z), true)))
 	{
-		ObstacleCollider2D->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+		SetCollisionProfileNameAndOpacity(TEXT("OverlapAllDynamic"), 0.65f);
+	}
+}
 
-		if (ChosenActor->GetActorLocation().Y < GetActorLocation().Y)
-		{
-			StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), 0.65f);
-		}
+void ALevel_Class_LevelObstacle::SetCollisionProfileNameAndOpacity(FName ProfileName, float opacityValue)
+{
+	if (GI && !GI->bIsIn3D)
+	{
+		ObstacleCollider2D->SetCollisionProfileName(ProfileName);
+	}
+
+	if (Player->GetActorLocation().Y < GetActorLocation().Y)
+	{
+		StaticMesh->SetScalarParameterValueOnMaterials(TEXT("Opacity"), opacityValue);
 	}
 }
 

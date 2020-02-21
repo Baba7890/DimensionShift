@@ -115,6 +115,8 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	PerformTransitionCameraMovement(DeltaTime);
+
+
 }
 
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
@@ -229,7 +231,7 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	//the player swapped to 2D. So we set the control rotation to zero beforehand
 	Controller->SetControlRotation(FRotator::ZeroRotator);
 
-	if (noOfOverlappingObstacleTrigs == 0)
+	if (LevelObstaclesInside.Num() == 0)
 	{
 		FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
 		SetActorLocation(NewPos);
@@ -290,3 +292,5 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 		}
 	}
 }
+
+

@@ -58,6 +58,9 @@ private:
 	APlayer_Class_MovementShift* Player;
 	UGameInstance_Class* GI;
 
+	//Higher humber means higher priority on player y pos if the player is overlapping multiple level obstacles
+	int priorityOverPlayerPosition = -1;
+
 protected:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
@@ -92,11 +95,15 @@ public:
 	UFUNCTION()
 	void OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-private:
+	int SetPriorityOverPlayerPosition();
+
 	/**
 	 * Checks and moves ChosenActor to this obstacle's baseline.
 	 * + If the ChosenActor cannot move to the baseline, the ChosenActor is not moved, the obstacle allows the player to move inside of it and becomes translucent.
 	 * @param - ChosenActor -> The AActor to be moved to this obstacle's baseline.
 	 */
 	void CheckAndMoveActorToBaseline(AActor* ChosenActor);
+
+private:
+	void SetCollisionProfileNameAndOpacity(FName ProfileName, float opacityValue);
 };
