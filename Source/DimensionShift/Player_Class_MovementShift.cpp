@@ -1,8 +1,10 @@
 #include "Player_Class_MovementShift.h"
 #include "GameInstance_Class.h"
 #include "Player_Class_Weapon.h"
+#include "Player_Class_CustomMoveComponent.h"
 
-APlayer_Class_MovementShift::APlayer_Class_MovementShift()
+APlayer_Class_MovementShift::APlayer_Class_MovementShift(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayer_Class_CustomMoveComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
@@ -11,13 +13,14 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
-
+	
 	GetCharacterMovement()->bOrientRotationToMovement = true;	//Character rotates in the direction it is moving in
 	GetCharacterMovement()->JumpZVelocity = 1200.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->GravityScale = 2.8f;
 	GetCharacterMovement()->MaxAcceleration = 10000.0f;
 	GetCharacterMovement()->GroundFriction = 100.0f;
+	GetCharacterMovement()->FallingLateralFriction = 5.0f;
 	GetCharacterMovement()->bEnablePhysicsInteraction = true;
 
 	baseGravityScale = GetCharacterMovement()->GravityScale;
@@ -116,7 +119,11 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 
 	PerformTransitionCameraMovement(DeltaTime);
 
-
+	if (currentSteam < maxSteam && bCanRegenerateSteam)
+	{
+		GetWorld()->GetTimerManager().SetTimer(SteamTimerHandle, this, &APlayer_Class_MovementShift::RegenSteam, steamRegenRateInSeconds, false);
+		bCanRegenerateSteam = false;
+	}
 }
 
 void APlayer_Class_MovementShift::MoveForward(float fAxis)
@@ -190,6 +197,14 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDura, false);
 		}
 	}
+}
+
+void APlayer_Class_MovementShift::ReduceSteam(int amount)
+{
+	currentSteam -= amount;
+
+	if (currentSteam < 0)
+		currentSteam = 0;
 }
 
 void APlayer_Class_MovementShift::TurnTo3D()
@@ -291,6 +306,16 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}
+}
+
+void APlayer_Class_MovementShift::RegenSteam()
+{
+	currentSteam += steamRegenAmount;
+
+	if (currentSteam > maxSteam)
+		currentSteam = maxSteam;
+
+	bCanRegenerateSteam = true;
 }
 
 

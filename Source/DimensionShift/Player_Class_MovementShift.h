@@ -25,7 +25,7 @@ class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 	GENERATED_BODY()
 
 public:
-	APlayer_Class_MovementShift();
+	APlayer_Class_MovementShift(const FObjectInitializer& ObjectInitializer);
 
 	#pragma region Camera Variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -57,15 +57,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 		float transCamFieldOfView2D = 0.3f;
-	#pragma endregion
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 		float swapDuration = 2.0f;
+	#pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
 		bool bCanPlayerMove = true;
-
-	int noOfOverlappingObstacleTrigs = 0;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 		TSubclassOf<APlayer_Class_Weapon> WeaponActor;
@@ -73,6 +71,32 @@ public:
 	bool bHasGun = true;
 
 	TArray<ALevel_Class_LevelObstacle*> LevelObstaclesInside;
+
+	#pragma region Health and Steam Stat Variables
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int currentHealth = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int maxHealth = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int currentSteam = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int maxSteam = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int doubleJumpSteamUsage = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int dashSteamUsage = 30;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		int steamRegenAmount = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+		float steamRegenRateInSeconds = 1.0f;
+	#pragma endregion
 
 private:
 	UGameInstance_Class* GI;
@@ -92,6 +116,13 @@ private:
 
 	//The velocity to save when the player switches dimensions so we can apply the same velocity on the player post-dimension swap
 	FVector PreDimensionSwapVelocity;
+
+	#pragma region Health and Steam Stat Variables
+
+	FTimerHandle SteamTimerHandle;
+	bool bCanRegenerateSteam = true;
+
+	#pragma endregion
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -115,6 +146,13 @@ public:
 	 */
 	UFUNCTION()
 	void DoSwapDimensionAction(bool bIsIn3D, float swapDura);
+
+	/**
+	 * Reduces the currentSteam by amount. If it goes below 0, will be set to 0.
+	 * @param - amount -> The amount of steam to subtract from currentSteam
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Steam Related")
+	void ReduceSteam(int amount);
 
 private:
 	/**
@@ -146,4 +184,10 @@ private:
 	 * @param - deltaTime -> The time taken for the game to go from the previous frame to the current frame 
 	 */
 	void PerformTransitionCameraMovement(float deltaTime);
+
+	/**
+	 * Regenerates currentSteam by steamRegenAmount. If it goes above maxSteam, set currentSteam to maxSteam.
+	 * LOC - Called by a timer in this Actor's Tick() after steamRegenRateInSeconds
+	 */
+	void RegenSteam();
 };
