@@ -12,9 +12,19 @@ class DIMENSIONSHIFT_API UPlayer_Class_CustomMoveComponent : public UCharacterMo
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Movement: Jumping / Falling", meta = (DisplayName = "Double Jump Z Velocity", ClampMin = "0", UIMin = "0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement: Jumping / Falling", meta = (DisplayName = "Double Jump Z Velocity", ClampMin = "0", UIMin = "0"))
 		float doubleJumpZVelocity = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement: Dashing", meta = (ClampMin = "0", UIMin = "0"))
+		float dashForce = 2000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement: Dashing", meta = (ClampMin = "0", UIMin = "0"))
+		float dashDuration = 0.6f;
+
+	float maxBrakingFrictionFactor;
+	float maxGravityScale;
 
 public:
 	bool DoJump(bool bReplayingMoves) override;
+	virtual void BeginPlay() override;
 };

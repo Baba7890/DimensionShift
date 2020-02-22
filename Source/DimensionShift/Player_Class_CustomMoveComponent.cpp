@@ -36,3 +36,11 @@ bool UPlayer_Class_CustomMoveComponent::DoJump(bool bReplayingMoves)
 
 	return false;
 }
+
+void UPlayer_Class_CustomMoveComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	maxBrakingFrictionFactor = BrakingFrictionFactor;
+	maxGravityScale = GravityScale;
+}

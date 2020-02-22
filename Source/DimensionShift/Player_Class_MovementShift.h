@@ -18,6 +18,7 @@
 class UGameInstance_Class;
 class APlayer_Class_Weapon;
 class ALevel_Class_LevelObstacle;
+class UPlayer_Class_CustomMoveComponent;
 
 UCLASS()
 class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
@@ -65,6 +66,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
 		bool bCanPlayerMove = true;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
+		bool bIsPlayerLookingRightIn2D = true;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 		TSubclassOf<APlayer_Class_Weapon> WeaponActor;
 
@@ -73,33 +77,40 @@ public:
 	TArray<ALevel_Class_LevelObstacle*> LevelObstaclesInside;
 
 	#pragma region Health and Steam Stat Variables
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		int currentHealth = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		int maxHealth = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		int currentSteam = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		int maxSteam = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
-		int doubleJumpSteamUsage = 20;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
-		int dashSteamUsage = 30;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		int steamRegenAmount = 5;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
-		float steamRegenRateInSeconds = 1.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
+		float steamRegenDelayInSeconds = 1.0f;
+	#pragma endregion
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Movement")
+		int doubleJumpSteamUsage = 20;
+
+	#pragma region Dash Variables
+
+	bool bIsDashing = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Movement")
+		int dashSteamUsage = 30;
+
 	#pragma endregion
 
 private:
 	UGameInstance_Class* GI;
+	UPlayer_Class_CustomMoveComponent* CustomMoveComponent;
 	FTimerHandle DimensionTimerHandle;
 
 	#pragma region Camera Variables
@@ -111,9 +122,6 @@ private:
 
 	APlayer_Class_Weapon* Weapon;
 
-	//A reference to the player's ORIGINAL gravity scale. (Since the gravity scale will be changed, we need this reference)
-	float baseGravityScale = 0.0f;
-
 	//The velocity to save when the player switches dimensions so we can apply the same velocity on the player post-dimension swap
 	FVector PreDimensionSwapVelocity;
 
@@ -123,6 +131,8 @@ private:
 	bool bCanRegenerateSteam = true;
 
 	#pragma endregion
+
+	FTimerHandle DashTimerHandle;
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -148,15 +158,28 @@ public:
 	void DoSwapDimensionAction(bool bIsIn3D, float swapDura);
 
 	/**
-	 * Reduces the currentSteam by amount. If it goes below 0, will be set to 0.
+	 * Inherited method that makes player jump.
+	 * ADD - Player can only jump if the player is not dashing
+	 */
+	virtual void Jump() override;
+
+	/**
+	 * Reduces the currentSteam by amount. If it goes below 0, will be set to 0
 	 * @param - amount -> The amount of steam to subtract from currentSteam
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Steam Related")
 	void ReduceSteam(int amount);
+	
+	/**
+	 * Returns whether the player is currently looking right or left in 2D
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Player Movement")
+	bool GetIsPlayerLookingRightInTwoDimen();
 
 private:
 	/**
 	 * Moves the player forward, backwards in 3D
+	 * LOC - Called in the player blueprint.
 	 * @param - fAxis -> The movement input value, between 0.0f and 1.0f
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
@@ -164,10 +187,18 @@ private:
 
 	/**
 	 * Moves the player right, left in 3D AND 2D
+	 * LOC - Called in the player blueprint.
 	 * @param - fAxis -> The movement input value, between 0.0f and 1.0f
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Player Movement")
 	void MoveRight(float fAxis);
+
+	/**
+	 * Performs the dash action depending on whether the player is pressing any input or not.
+	 * LOC - Called in the player blueprint.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Player Movement")
+	void Dash();
 
 	/**
 	 * Called when the world swaps to 3D.
@@ -187,7 +218,13 @@ private:
 
 	/**
 	 * Regenerates currentSteam by steamRegenAmount. If it goes above maxSteam, set currentSteam to maxSteam.
-	 * LOC - Called by a timer in this Actor's Tick() after steamRegenRateInSeconds
+	 * LOC - Called by a timer in this Actor's Tick() using SteamTimerHandle after steamRegenRateInSeconds
 	 */
 	void RegenSteam();
+
+	/**
+	 * Resets bIsDashing and stops player movement immediately
+	 * LOC - Called by a timer in this Actor's Dash() using DashTimerHandle after dashDuration
+	 */
+	void ResetIsDashing();
 };

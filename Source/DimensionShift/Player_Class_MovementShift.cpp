@@ -14,6 +14,11 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift(const FObjectInitialize
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 	
+	CustomMoveComponent = Cast<UPlayer_Class_CustomMoveComponent>(GetCharacterMovement());
+
+	if (CustomMoveComponent == nullptr)
+		UE_LOG(LogTemp, Error, TEXT("The player has no CustomMoveComponent."));
+
 	GetCharacterMovement()->bOrientRotationToMovement = true;	//Character rotates in the direction it is moving in
 	GetCharacterMovement()->JumpZVelocity = 1200.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -23,7 +28,7 @@ APlayer_Class_MovementShift::APlayer_Class_MovementShift(const FObjectInitialize
 	GetCharacterMovement()->FallingLateralFriction = 5.0f;
 	GetCharacterMovement()->bEnablePhysicsInteraction = true;
 
-	baseGravityScale = GetCharacterMovement()->GravityScale;
+	JumpMaxCount = 2;
 
 	#pragma region Camera Setup
 
@@ -121,36 +126,8 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 
 	if (currentSteam < maxSteam && bCanRegenerateSteam)
 	{
-		GetWorld()->GetTimerManager().SetTimer(SteamTimerHandle, this, &APlayer_Class_MovementShift::RegenSteam, steamRegenRateInSeconds, false);
+		GetWorld()->GetTimerManager().SetTimer(SteamTimerHandle, this, &APlayer_Class_MovementShift::RegenSteam, steamRegenDelayInSeconds, false);
 		bCanRegenerateSteam = false;
-	}
-}
-
-void APlayer_Class_MovementShift::MoveForward(float fAxis)
-{
-	if (GI->bIsIn3D)
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
-		AddMovementInput(Direction, fAxis);
-	}
-}
-
-void APlayer_Class_MovementShift::MoveRight(float fAxis)
-{
-	if (GI->bIsIn3D)
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
-		AddMovementInput(Direction, fAxis);
-	}
-	else
-	{
-		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
 	}
 }
 
@@ -158,7 +135,7 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
 	if (Weapon != nullptr)
 	{
-		if (!Weapon->bIsShooting)
+		if (!Weapon->bIsShooting && !bIsDashing)
 		{
 			if (GI != nullptr)
 				GI->SwapDimensions();
@@ -199,6 +176,12 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 	}
 }
 
+void APlayer_Class_MovementShift::Jump()
+{
+	if (!bIsDashing)
+		Super::Jump();
+}
+
 void APlayer_Class_MovementShift::ReduceSteam(int amount)
 {
 	currentSteam -= amount;
@@ -207,20 +190,121 @@ void APlayer_Class_MovementShift::ReduceSteam(int amount)
 		currentSteam = 0;
 }
 
+bool APlayer_Class_MovementShift::GetIsPlayerLookingRightInTwoDimen()
+{
+	if (GetActorRotation().Yaw > -90.0f)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void APlayer_Class_MovementShift::MoveForward(float fAxis)
+{
+	if (!bIsDashing)
+	{
+		if (GI->bIsIn3D)
+		{
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);		//Calculate forward direction
+			AddMovementInput(Direction, fAxis);
+		}
+	}
+}
+
+void APlayer_Class_MovementShift::MoveRight(float fAxis)
+{
+	if (!bIsDashing)
+	{
+		if (GI->bIsIn3D)
+		{
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);		//Calculate right direction
+			AddMovementInput(Direction, fAxis);
+		}
+		else
+		{
+			AddMovementInput(FVector(1.0f, 0.0f, 0.0f), fAxis);		//We don't need to calculate like above for 2D.
+		}
+	}
+}
+
+void APlayer_Class_MovementShift::Dash()
+{
+	if (currentSteam >= dashSteamUsage)
+	{
+		if (!bIsDashing)
+		{
+			CustomMoveComponent->BrakingFrictionFactor = 0.0f;
+			bIsDashing = true;
+
+			//Is the player moving?
+			if (GetInputAxisValue(TEXT("MoveForward3D")) != 0.0f || GetInputAxisValue(TEXT("MoveRight3D")) != 0.0f)
+			{ //Player is moving
+				if (!GI->bIsIn3D)
+				{
+					LaunchCharacter(FVector(GetInputAxisValue(TEXT("MoveRight3D")) * CustomMoveComponent->dashForce, 0.0f, 0.0f), true, true);
+				}
+				else
+				{
+					FRotator RotationX = Controller->GetControlRotation();
+					FRotator YawRotationX(0, RotationX.Yaw, 0);
+					FVector DirectionX = FRotationMatrix(YawRotationX).GetUnitAxis(EAxis::X);
+					DirectionX = DirectionX * GetInputAxisValue(TEXT("MoveForward3D"));
+
+					FRotator RotationY = Controller->GetControlRotation();
+					FRotator YawRotationY(0, RotationY.Yaw, 0);
+					FVector DirectionY = FRotationMatrix(YawRotationY).GetUnitAxis(EAxis::Y);
+					DirectionY = DirectionY * GetInputAxisValue(TEXT("MoveRight3D"));
+
+					LaunchCharacter(FVector(DirectionX + DirectionY).GetSafeNormal() * CustomMoveComponent->dashForce, true, true);
+				}
+			}
+			else 
+			{ //Player is not moving
+				if (!GI->bIsIn3D)
+				{
+					if (GetIsPlayerLookingRightInTwoDimen())
+						LaunchCharacter(FVector(1.0f * CustomMoveComponent->dashForce, 0.0f, 0.0f), true, true);
+					else
+					{
+						LaunchCharacter(FVector(-1.0f * CustomMoveComponent->dashForce, 0.0f, 0.0f), true, true);
+					}
+				}
+				else
+				{
+					LaunchCharacter(FVector(FollowCamera3D->GetForwardVector().X, FollowCamera3D->GetForwardVector().Y, 0.0f).GetSafeNormal()
+						* CustomMoveComponent->dashForce, true, true);
+				}
+			}
+
+			currentSteam -= dashSteamUsage;
+			CustomMoveComponent->GravityScale = 0.0f;
+			GetWorldTimerManager().SetTimer(DashTimerHandle, this, &APlayer_Class_MovementShift::ResetIsDashing,
+				CustomMoveComponent->dashDuration, false);
+		}
+	}
+}
+
 void APlayer_Class_MovementShift::TurnTo3D()
 {
 	bCanPlayerMove = true;
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
-	GetCharacterMovement()->GravityScale = baseGravityScale;
-	GetCharacterMovement()->Velocity = PreDimensionSwapVelocity;
+	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
+	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
 
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera3D->SetActive(true);
 	TransitionCamera->SetActive(false);
 
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+	CustomMoveComponent->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	Controller->SetControlRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(false);
 }
@@ -231,19 +315,19 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
-	GetCharacterMovement()->GravityScale = baseGravityScale;
-	GetCharacterMovement()->Velocity = PreDimensionSwapVelocity;
+	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
+	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
 
 	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera2D->SetActive(true);
 	TransitionCamera->SetActive(false);
 	
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
+	CustomMoveComponent->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	SetActorRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(true);
 
 	//This is located here instead of TurnTo3D() to prevent the 3D camera from showing the previous 3D camera rotation for 1 frame before 
-	//the player swapped to 2D. So we set the control rotation to zero beforehand
+	//the player swapped to 3D. So we set the control rotation to zero beforehand
 	Controller->SetControlRotation(FRotator::ZeroRotator);
 
 	if (LevelObstaclesInside.Num() == 0)
@@ -316,6 +400,14 @@ void APlayer_Class_MovementShift::RegenSteam()
 		currentSteam = maxSteam;
 
 	bCanRegenerateSteam = true;
+}
+
+void APlayer_Class_MovementShift::ResetIsDashing()
+{
+	CustomMoveComponent->StopMovementImmediately();
+	CustomMoveComponent->BrakingFrictionFactor = CustomMoveComponent->maxBrakingFrictionFactor;
+	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
+	bIsDashing = false;
 }
 
 
