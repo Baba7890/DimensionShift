@@ -135,7 +135,7 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
 	if (Weapon != nullptr)
 	{
-		if (!Weapon->bIsShooting && !bIsDashing)
+		if (!Weapon->bIsShooting && !bIsDashing && bCanPlayerMove)
 		{
 			if (GI != nullptr)
 				GI->SwapDimensions();
@@ -149,12 +149,12 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 	GetCharacterMovement()->GravityScale = 0.0f;
 	GetCharacterMovement()->StopMovementImmediately();
 
+	bCanPlayerMove = false;
+
 	if (bIsIn3D)
 	{
 		TransitionCamera->SetActive(true);
 		FollowCamera2D->SetActive(false);
-
-		bCanPlayerMove = false;
 
 		if (GetWorld())
 		{
@@ -166,8 +166,6 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 		TransitionCamera->SetActive(true);
 		TransCameraBoom->SetWorldRotation(Controller->GetControlRotation());
 		FollowCamera3D->SetActive(false);
-
-		bCanPlayerMove = false;
 
 		if (GetWorld())
 		{

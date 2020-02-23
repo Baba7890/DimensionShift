@@ -66,9 +66,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
 		bool bCanPlayerMove = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Movement")
-		bool bIsPlayerLookingRightIn2D = true;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 		TSubclassOf<APlayer_Class_Weapon> WeaponActor;
 
