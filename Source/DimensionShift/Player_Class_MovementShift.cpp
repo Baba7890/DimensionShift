@@ -135,7 +135,7 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 {
 	if (Weapon != nullptr)
 	{
-		if (!Weapon->bIsShooting && !bIsDashing && bCanPlayerMove)
+		if (!Weapon->bIsShooting && !bIsDashing)
 		{
 			if (GI != nullptr)
 				GI->SwapDimensions();
