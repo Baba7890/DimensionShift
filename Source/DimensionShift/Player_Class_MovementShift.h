@@ -28,6 +28,9 @@ class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 public:
 	APlayer_Class_MovementShift(const FObjectInitializer& ObjectInitializer);
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dimension")
+		bool bIsIn3D = false;
+
 	#pragma region Camera Variables
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 		USpringArmComponent* CameraBoom2D;
@@ -75,33 +78,39 @@ public:
 
 	#pragma region Health and Steam Stat Variables
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
-		int currentHealth = 100;
+		float currentHealth = 100.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
-		int maxHealth = 100;
+		float maxHealth = 100.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
-		int currentSteam = 100;
+		float currentSteam = 100.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
-		int maxSteam = 100;
+		float maxSteam = 100.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
-		int steamRegenAmount = 5;
+		float steamRegenAmount = 0.01f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
+		float steamRegenIntervalInSeconds = 0.2f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
 		float steamRegenDelayInSeconds = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	bool bIsCurrentlyRegenSteam = false;
 	#pragma endregion
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Movement")
-		int doubleJumpSteamUsage = 20;
+		float doubleJumpSteamUsage = 20.0f;
 
 	#pragma region Dash Variables
 
 	bool bIsDashing = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Movement")
-		int dashSteamUsage = 30;
+		float dashSteamUsage = 30.0f;
 
 	#pragma endregion
 
@@ -125,7 +134,6 @@ private:
 	#pragma region Health and Steam Stat Variables
 
 	FTimerHandle SteamTimerHandle;
-	bool bCanRegenerateSteam = true;
 
 	#pragma endregion
 
@@ -147,12 +155,9 @@ public:
 	/**
 	 * This method is played when the world switches from 2D -> 3D or vice versa
 	 * + This method contains a timer that calls TurnTo2D() and TurnTo3D() after a set amount of time
-	 * LOC - This method will be called the Game Instance's OnDimensionSwapped delegate
-	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
-	 * @param - swapDura -> The duration it takes to swap between 2D -> 3D or vice versa.
 	 */
 	UFUNCTION()
-	void DoSwapDimensionAction(bool bIsIn3D, float swapDura);
+	void DoSwapDimensionAction();
 
 	/**
 	 * Inherited method that makes player jump.

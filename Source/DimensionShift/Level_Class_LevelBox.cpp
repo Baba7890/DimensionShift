@@ -9,7 +9,7 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Collider"));
 	BoxCollider->SetMobility(EComponentMobility::Static);
-	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));
+	BoxCollider->SetCollisionProfileName(TEXT("Trigger2D3D"));
 	BoxCollider->SetBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 
 	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);
@@ -64,22 +64,6 @@ void ALevel_Class_LevelBox::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, 
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherActor->ActorHasTag("Player")))
 	{
 		bIsPlayerInBox = true;
-
-		if (AttachedObjects.Num() > 0)
-		{
-			if (GI != nullptr)
-			{
-				for (int i = 0; i < AttachedObjects.Num(); i++)
-				{
-					ALevel_Class_LevelObstacle* Obstacle = Cast<ALevel_Class_LevelObstacle>(AttachedObjects[i]);
-
-					if (Obstacle != nullptr)
-					{
-						Obstacle->SubscribeSwapMethodToGameInstance(true);
-					}
-				}
-			}
-		}
 	}
 }
 
@@ -88,41 +72,25 @@ void ALevel_Class_LevelBox::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AA
 	if ((OtherActor != nullptr) && (OtherActor != this) && OtherActor->ActorHasTag("Player"))
 	{
 		bIsPlayerInBox = false;
-
-		if (AttachedObjects.Num() > 0)
-		{
-			if (GI != nullptr)
-			{
-				for (int i = 0; i < AttachedObjects.Num(); i++)
-				{
-					ALevel_Class_LevelObstacle* Obstacle = Cast<ALevel_Class_LevelObstacle>(AttachedObjects[i]);
-
-					if (Obstacle != nullptr)
-					{
-						Obstacle->SubscribeSwapMethodToGameInstance(false);
-					}
-				}
-			}
-		}
 	}
 }
 
-void ALevel_Class_LevelBox::DoDimensionSwapAction(bool bIsIn3D, float swapDuration)
+void ALevel_Class_LevelBox::DoDimensionSwapAction(bool bPlayerIsIn3D, float swapDuration)
 {
 	//Is this intensive?
-	DimensionTimerDelegate.BindUFunction(this, FName("EnableLevelBox"), bIsIn3D);
+	DimensionTimerDelegate.BindUFunction(this, FName("EnableLevelBox"), bPlayerIsIn3D);
 	GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, DimensionTimerDelegate, swapDuration / 2.0f, false);
 }
 
-void ALevel_Class_LevelBox::EnableLevelBox(bool bIsIn3D)
+void ALevel_Class_LevelBox::EnableLevelBox(bool bPlayerIsIn3D)
 {
-	UObject_Class_HelperStatics::EnableActor(this, bIsIn3D);
+	UObject_Class_HelperStatics::EnableActor(this, bPlayerIsIn3D);
 
 	if (AttachedObjects.Num() > 0)
 	{
 		for (int i = 0; i < AttachedObjects.Num(); i++)
 		{
-			UObject_Class_HelperStatics::EnableActor(AttachedObjects[i], bIsIn3D);
+			UObject_Class_HelperStatics::EnableActor(AttachedObjects[i], bPlayerIsIn3D);
 		}
 	}
 }

@@ -9,19 +9,12 @@
 
 class ALevel_Class_LevelBox;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDimensionSwap, bool, bIsIn3D, float, swapDuration);
-
 UCLASS()
 class DIMENSIONSHIFT_API UGameInstance_Class : public UGameInstance
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadOnly, Category = "Dimension Swapping")
-	bool bIsIn3D = false;
-
-	FOnDimensionSwap OnDimensionSwapped;
-
 	float swapDuration = 2.0f;
 
 private:
@@ -34,7 +27,7 @@ public:
 	/**
 	 * This function is called by the player whenever the player is going to swap dimensions. Important function.
 	 */
-	void SwapDimensions();
+	void EnableLevelBoxes(bool bPlayerIsIn3D);
 
 	/**
 	 * This function adds a LevelBox to this GameInstance;s LevelBoxes TArray.

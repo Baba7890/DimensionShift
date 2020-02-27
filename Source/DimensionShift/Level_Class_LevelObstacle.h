@@ -69,22 +69,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	/**
-	 * This method is played when the world switches from 2D -> 3D or vice versa
-	 * + Changes the obstacle to use the one of the two collision boxes, 2D or 3D depending on the 'bIsIn3D' parameter
-	 * LOC - This method will be called the Game Instance's OnDimensionSwapped delegate
-	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
-	 * @param - swapDura -> The duration it takes to swap between 2D -> 3D or vice versa.
-	 */
-	UFUNCTION()
-	void DoSwapDimensionAction(bool bIsIn3D, float swapDuration);
-
-	/**
-	 * This function adds a method to the game instance's OnDimensionSwapped delegate. Called from Level.cpp. I know, its messy.
-	 * @param - bShouldAdd -> Should the method be subscribed to the delegate or removed?
-	 */
-	void SubscribeSwapMethodToGameInstance(bool bShouldAdd);
-
 	UFUNCTION()
 	void OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

@@ -2,6 +2,7 @@
 #include "GameInstance_Class.h"
 #include "Player_Class_Weapon.h"
 #include "Player_Class_CustomMoveComponent.h"
+#include "Level_Class_LevelObstacle.h"
 
 APlayer_Class_MovementShift::APlayer_Class_MovementShift(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayer_Class_CustomMoveComponent>(ACharacter::CharacterMovementComponentName))
@@ -88,7 +89,6 @@ void APlayer_Class_MovementShift::PostInitializeComponents()
 
 		if (GI != nullptr)
 		{
-			GI->OnDimensionSwapped.AddDynamic(this, &APlayer_Class_MovementShift::DoSwapDimensionAction);
 			GI->swapDuration = this->swapDuration;
 		}
 	}
@@ -103,6 +103,7 @@ void APlayer_Class_MovementShift::BeginPlay()
 		SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
 	}
 
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn2D"));
 	FollowCamera3D->SetActive(false);
 	TransitionCamera->SetActive(false);
 	Controller->SetIgnoreLookInput(true);	
@@ -124,10 +125,12 @@ void APlayer_Class_MovementShift::Tick(float DeltaTime)
 
 	PerformTransitionCameraMovement(DeltaTime);
 
-	if (currentSteam < maxSteam && bCanRegenerateSteam)
+	if (currentSteam < maxSteam && !bIsCurrentlyRegenSteam)
 	{
-		GetWorld()->GetTimerManager().SetTimer(SteamTimerHandle, this, &APlayer_Class_MovementShift::RegenSteam, steamRegenDelayInSeconds, false);
-		bCanRegenerateSteam = false;
+		GetWorldTimerManager().ClearTimer(SteamTimerHandle);
+		GetWorldTimerManager().SetTimer(SteamTimerHandle, this, &APlayer_Class_MovementShift::RegenSteam, steamRegenIntervalInSeconds, 
+			true, steamRegenDelayInSeconds);
+		bIsCurrentlyRegenSteam = true;
 	}
 }
 
@@ -137,13 +140,19 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 	{
 		if (!Weapon->bIsShooting && !bIsDashing)
 		{
+			//Swap player dimensions only
+			bIsIn3D = !bIsIn3D;
+
+			//Change level box
 			if (GI != nullptr)
-				GI->SwapDimensions();
+				GI->EnableLevelBoxes(bIsIn3D);
+
+			DoSwapDimensionAction();
 		}
 	}
 }
 
-void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swapDura)
+void APlayer_Class_MovementShift::DoSwapDimensionAction()
 {
 	PreDimensionSwapVelocity = GetCharacterMovement()->Velocity;
 	GetCharacterMovement()->GravityScale = 0.0f;
@@ -155,10 +164,11 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 	{
 		TransitionCamera->SetActive(true);
 		FollowCamera2D->SetActive(false);
+		GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn3D"));
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo3D, swapDura, false);
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo3D, swapDuration, false);
 		}
 	}
 	else
@@ -166,10 +176,11 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction(bool bIsIn3D, float swap
 		TransitionCamera->SetActive(true);
 		TransCameraBoom->SetWorldRotation(Controller->GetControlRotation());
 		FollowCamera3D->SetActive(false);
+		GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn2D"));
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDura, false);
+			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDuration, false);
 		}
 	}
 }
@@ -183,9 +194,10 @@ void APlayer_Class_MovementShift::Jump()
 void APlayer_Class_MovementShift::ReduceSteam(int amount)
 {
 	currentSteam -= amount;
+	bIsCurrentlyRegenSteam = false;
 
 	if (currentSteam < 0)
-		currentSteam = 0;
+		currentSteam = 0.0f;
 }
 
 bool APlayer_Class_MovementShift::GetIsPlayerLookingRightInTwoDimen()
@@ -202,7 +214,7 @@ void APlayer_Class_MovementShift::MoveForward(float fAxis)
 {
 	if (!bIsDashing)
 	{
-		if (GI->bIsIn3D)
+		if (bIsIn3D)
 		{
 			const FRotator Rotation = Controller->GetControlRotation();
 			const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -217,7 +229,7 @@ void APlayer_Class_MovementShift::MoveRight(float fAxis)
 {
 	if (!bIsDashing)
 	{
-		if (GI->bIsIn3D)
+		if (bIsIn3D)
 		{
 			const FRotator Rotation = Controller->GetControlRotation();
 			const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -244,7 +256,7 @@ void APlayer_Class_MovementShift::Dash()
 			//Is the player moving?
 			if (GetInputAxisValue(TEXT("MoveForward3D")) != 0.0f || GetInputAxisValue(TEXT("MoveRight3D")) != 0.0f)
 			{ //Player is moving
-				if (!GI->bIsIn3D)
+				if (!bIsIn3D)
 				{
 					LaunchCharacter(FVector(GetInputAxisValue(TEXT("MoveRight3D")) * CustomMoveComponent->dashForce, 0.0f, 0.0f), true, true);
 				}
@@ -265,7 +277,7 @@ void APlayer_Class_MovementShift::Dash()
 			}
 			else 
 			{ //Player is not moving
-				if (!GI->bIsIn3D)
+				if (!bIsIn3D)
 				{
 					if (GetIsPlayerLookingRightInTwoDimen())
 						LaunchCharacter(FVector(1.0f * CustomMoveComponent->dashForce, 0.0f, 0.0f), true, true);
@@ -281,7 +293,8 @@ void APlayer_Class_MovementShift::Dash()
 				}
 			}
 
-			currentSteam -= dashSteamUsage;
+			ReduceSteam(dashSteamUsage);
+			
 			CustomMoveComponent->GravityScale = 0.0f;
 			GetWorldTimerManager().SetTimer(DashTimerHandle, this, &APlayer_Class_MovementShift::ResetIsDashing,
 				CustomMoveComponent->dashDuration, false);
@@ -295,10 +308,14 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
+	if (LevelObstaclesInside.Num() > 0)
+	{
+		LevelObstaclesInside[0]->CheckAndMoveActorToBaseline(this);
+	}
+
 	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
 	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
 
-	//I had cases where these two lines crashed, just keeping this here in case
 	FollowCamera3D->SetActive(true);
 	TransitionCamera->SetActive(false);
 
@@ -316,7 +333,11 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
 	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
 
-	//I had cases where these two lines crashed, just keeping this here in case
+	if (LevelObstaclesInside.Num() > 0)
+	{
+		LevelObstaclesInside[0]->CheckAndMoveActorToBaseline(this);
+	}
+
 	FollowCamera2D->SetActive(true);
 	TransitionCamera->SetActive(false);
 	
@@ -338,7 +359,7 @@ void APlayer_Class_MovementShift::TurnTo2D()
 void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTime)
 {
 	//2D -> 3D Transition Camera movement
-	if (!bCanPlayerMove && GI->bIsIn3D)
+	if (!bCanPlayerMove && bIsIn3D)
 	{
 		if (!bHasFinishedViewLerp)
 		{
@@ -351,7 +372,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 				currentLerpAlpha = 0.0f;
 			}
 
-			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));	//Calculation for x seconds between 0.0f and 1.0f
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));	//Calculation for x seconds between 0.0f and 1.0f
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 		else
@@ -359,11 +380,11 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(FRotator(0.0f, -90.0f, 0.0f)), FQuat(FRotator(FRotator::ZeroRotator)),
 				currentLerpAlpha));
 
-			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}
-	else if (!bCanPlayerMove && !GI->bIsIn3D)	//3D -> 2D Transition Camera movement
+	else if (!bCanPlayerMove && !bIsIn3D)	//3D -> 2D Transition Camera movement
 	{
 		if (!bHasFinishedViewLerp)
 		{
@@ -376,7 +397,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 				currentLerpAlpha = 0.0f;
 			}
 
-			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 		else
@@ -384,7 +405,7 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 			TransitionCamera->SetFieldOfView(FMath::Lerp(transCamFieldOfView3D, transCamFieldOfView2D, currentLerpAlpha));
 			TransCameraBoom->TargetArmLength = FMath::Lerp(transCamTargetArmLength3D, transCamTargetArmLength2D, currentLerpAlpha);
 
-			currentLerpAlpha += deltaTime * (1.0f / (GI->swapDuration / 2.0f));
+			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);
 		}
 	}
@@ -395,9 +416,11 @@ void APlayer_Class_MovementShift::RegenSteam()
 	currentSteam += steamRegenAmount;
 
 	if (currentSteam > maxSteam)
+	{
 		currentSteam = maxSteam;
-
-	bCanRegenerateSteam = true;
+		GetWorldTimerManager().ClearTimer(SteamTimerHandle);
+		bIsCurrentlyRegenSteam = false;
+	}	
 }
 
 void APlayer_Class_MovementShift::ResetIsDashing()

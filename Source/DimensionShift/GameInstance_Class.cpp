@@ -9,10 +9,8 @@ UGameInstance_Class::UGameInstance_Class()
 	
 }
 
-void UGameInstance_Class::SwapDimensions()
+void UGameInstance_Class::EnableLevelBoxes(bool bPlayerIsIn3D)
 {
-	bIsIn3D = !bIsIn3D;
-
 	bool hasFoundPlayerLevelBox = false;
 
 	if (GetNoOfLevelBoxes() > 0)
@@ -22,13 +20,8 @@ void UGameInstance_Class::SwapDimensions()
 			if (LevelBoxes[i]->bIsPlayerInBox && !hasFoundPlayerLevelBox)
 				hasFoundPlayerLevelBox = true;
 			else
-				LevelBoxes[i]->DoDimensionSwapAction(bIsIn3D, swapDuration);
+				LevelBoxes[i]->DoDimensionSwapAction(bPlayerIsIn3D, swapDuration);
 		}
-	}
-
-	if (OnDimensionSwapped.IsBound())
-	{
-		OnDimensionSwapped.Broadcast(bIsIn3D, swapDuration);
 	}
 }
 
@@ -58,5 +51,4 @@ float UGameInstance_Class::GetPlayerInLevelBoxBaseline()
 void UGameInstance_Class::ClearCurrentLevelBoxes()
 {
 	LevelBoxes.Empty();
-	bIsIn3D = false;
 }

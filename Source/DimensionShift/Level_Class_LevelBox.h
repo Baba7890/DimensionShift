@@ -55,16 +55,16 @@ public:
 	 * This method is played when the world switches from 2D -> 3D or vice versa
 	 * + This method calls EnableLevelBox() after a certain amount of time.
 	 * + Unlike many other Actors, LevelBox's DoDimensionSwapAction is NOT connected to the GameInstance's delegate
-	 * @param - bIsIn3D -> Is the world in 3D? TRUE = 3D, FALSE = 2D
+	 * @param - bPlayerIsIn3D -> Is the player in 3D? TRUE = 3D, FALSE = 2D
 	 * @param - swapDuration -> The duration it takes to swap between 2D -> 3D or vice versa.
 	 */
-	void DoDimensionSwapAction(bool bIsIn3D, float swapDuration);
+	void DoDimensionSwapAction(bool bPlayerIsIn3D, float swapDuration);
 
 	/**
 	 * This function enables/disables this level box along with its attached actors.
 	 * Useful when the game is in 2D and we only want one of the level boxes to be active while the rest are deactivated
-	 * @param - bIsIn3D -> Is the world in 3D? If so, enable this LevelBox. If not, disable it...unless the player is in it
+	 * @param - bPlayerIsIn3D -> Is the player in 3D? If so, enable this LevelBox. If not, disable it...unless the player is in it
 	 */
 	UFUNCTION()
-	void EnableLevelBox(bool bIsIn3D);
+	void EnableLevelBox(bool bPlayerIsIn3D);
 };

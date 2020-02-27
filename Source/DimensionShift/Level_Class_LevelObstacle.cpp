@@ -55,22 +55,9 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 	}
 	else
 	{
-		//Performing initial setting due to world starting in 2D
-		//If bIsPlayerInBox, activate the 2D collider. If not, activate the 3D one. Since the colliders only change profile name when the player
-		//is in a Level Box IN 2D, obstacles in other level boxes must be set to 3D initially.
-		if (ParentLevelBox->bIsPlayerInBox)
-		{
-			ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-			ObstacleCollider3D->SetCollisionProfileName(TEXT("NoCollision"));
-		}
-		else
-		{
-			ObstacleCollider2D->SetCollisionProfileName(TEXT("NoCollision"));
-			ObstacleCollider3D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-		}
-		
-		//This trigger NEVER changes its profile name
-		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger"));
+		ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic2D"));
+		ObstacleCollider3D->SetCollisionProfileName(TEXT("BlockAllDynamic3D"));
+		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger2D3D"));
 	}
 
 	if (bDoesTriggerUseColliderScale)
@@ -90,39 +77,6 @@ void ALevel_Class_LevelObstacle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-}
-
-void ALevel_Class_LevelObstacle::DoSwapDimensionAction(bool bIsIn3D, float swapDuration)
-{
-	//2D = ObstacleCollider2D blocks player and enemies; ObstacleCollider3D has no collision
-	//3D = ObstacleCollider3D blocks player and enemies; ObstacleCollider2D has no collision
-	if (bIsIn3D)
-	{
-		ObstacleCollider2D->SetCollisionProfileName(TEXT("NoCollision"));
-		ObstacleCollider3D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-	}
-	else
-	{
-		ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-		ObstacleCollider3D->SetCollisionProfileName(TEXT("NoCollision"));
-
-		//This will most likely be replaced with an TArray instead of Player because enemies have to follow this rule too.
-		if (bIsPlayerInside)
-		{
-			if (Player != nullptr)
-			{
-				CheckAndMoveActorToBaseline(Player);
-			}
-		}
-	}
-}
-
-void ALevel_Class_LevelObstacle::SubscribeSwapMethodToGameInstance(bool bShouldAdd)
-{
-	if (bShouldAdd)
-		GI->OnDimensionSwapped.AddDynamic(this, &ALevel_Class_LevelObstacle::DoSwapDimensionAction);
-	else
-		GI->OnDimensionSwapped.RemoveDynamic(this, &ALevel_Class_LevelObstacle::DoSwapDimensionAction);
 }
 
 void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -160,7 +114,7 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 			
 			Player->LevelObstaclesInside.Add(this);
 
-			if (GI && !GI->bIsIn3D)
+			if (!Player->bIsIn3D)
 			{
 				CheckAndMoveActorToBaseline(OtherActor);
 			}
@@ -176,7 +130,7 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 
 		if (Player != nullptr)
 		{
-			if (GI && !GI->bIsIn3D)
+			if (!Player->bIsIn3D)
 			{
 				//=====================
 				//This code only runs in 2D
@@ -226,7 +180,7 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic"), 1.0f);
+		SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic2D"), 1.0f);
 	}
 }
 
@@ -251,13 +205,13 @@ void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor
 
 	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineWorldYPos, ChosenActor->GetActorLocation().Z), true)))
 	{
-		SetCollisionProfileNameAndOpacity(TEXT("OverlapAllDynamic"), 0.65f);
+		SetCollisionProfileNameAndOpacity(TEXT("OverlapAllDynamic2D"), 0.65f);
 	}
 }
 
 void ALevel_Class_LevelObstacle::SetCollisionProfileNameAndOpacity(FName ProfileName, float opacityValue)
 {
-	if (GI && !GI->bIsIn3D)
+	if (!Player->bIsIn3D)
 	{
 		ObstacleCollider2D->SetCollisionProfileName(ProfileName);
 	}

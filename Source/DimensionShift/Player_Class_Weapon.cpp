@@ -54,7 +54,7 @@ void APlayer_Class_Weapon::FireWeapon()
 		{
 			if (GetWorld())
 			{
-				if (GI != nullptr && GI->bIsIn3D)
+				if (GI != nullptr && PlayerOwner->bIsIn3D)
 				{
 					FRotator SpawnRotation = PlayerOwner->Controller->GetControlRotation();
 
@@ -69,7 +69,7 @@ void APlayer_Class_Weapon::FireWeapon()
 					GetWorld()->GetTimerManager().SetTimer(FireDelayTimerHandle, this, &APlayer_Class_Weapon::ResetIsShooting, fireDelay, 
 						false);
 				}
-				else if (GI != nullptr && !GI->bIsIn3D)
+				else if (GI != nullptr && !PlayerOwner->bIsIn3D)
 				{
 					FVector WorldMousePosition = FVector::ZeroVector;
 					FVector WorldMouseDirection = FVector::ZeroVector;
