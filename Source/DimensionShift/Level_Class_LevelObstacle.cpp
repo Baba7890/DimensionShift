@@ -20,12 +20,14 @@ ALevel_Class_LevelObstacle::ALevel_Class_LevelObstacle()
 	ObstacleCollider2D->SetMobility(EComponentMobility::Static);	
 	ObstacleCollider2D->SetGenerateOverlapEvents(true);
 	ObstacleCollider2D->SetAbsolute(false, false, true);
+	ObstacleCollider2D->ComponentTags.Add(TEXT("Obstacle2D"));
 
 	ObstacleCollider3D = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider3D"));
 	ObstacleCollider3D->SetupAttachment(RootComponent);
 	ObstacleCollider3D->SetMobility(EComponentMobility::Static);
 	ObstacleCollider3D->SetGenerateOverlapEvents(false);
 	ObstacleCollider3D->SetAbsolute(false, false, true);
+	ObstacleCollider3D->ComponentTags.Add(TEXT("Obstacle3D"));
 
 	StandingOnTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("StandingOnTrigger"));
 	StandingOnTrigger->SetupAttachment(RootComponent);
@@ -57,7 +59,7 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 	{
 		ObstacleCollider2D->SetCollisionProfileName(TEXT("BlockAllDynamic2D"));
 		ObstacleCollider3D->SetCollisionProfileName(TEXT("BlockAllDynamic3D"));
-		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger2D3D"));
+		StandingOnTrigger->SetCollisionProfileName(TEXT("Trigger"));
 	}
 
 	if (bDoesTriggerUseColliderScale)

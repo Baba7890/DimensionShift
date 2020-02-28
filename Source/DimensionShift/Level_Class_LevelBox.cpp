@@ -8,8 +8,9 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 	PrimaryActorTick.bCanEverTick = true;
 
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Collider"));
+	SetRootComponent(BoxCollider);
 	BoxCollider->SetMobility(EComponentMobility::Static);
-	BoxCollider->SetCollisionProfileName(TEXT("Trigger2D3D"));
+	BoxCollider->SetCollisionProfileName(TEXT("Trigger"));
 	BoxCollider->SetBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 
 	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);

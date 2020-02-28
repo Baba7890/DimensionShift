@@ -102,10 +102,10 @@ public:
 	bool bIsCurrentlyRegenSteam = false;
 	#pragma endregion
 
+	#pragma region Movement Variables
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Movement")
 		float doubleJumpSteamUsage = 20.0f;
-
-	#pragma region Dash Variables
 
 	bool bIsDashing = false;
 

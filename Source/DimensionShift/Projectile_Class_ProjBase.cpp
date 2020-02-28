@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Projectile_Class_ProjBase.h"
+#include "Player_Class_MovementShift.h"
 
 // Sets default values
 AProjectile_Class_ProjBase::AProjectile_Class_ProjBase()
@@ -50,9 +50,19 @@ void AProjectile_Class_ProjBase::Tick(float DeltaTime)
 
 void AProjectile_Class_ProjBase::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	APlayer_Class_MovementShift* Player = Cast<APlayer_Class_MovementShift>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Enemy"))
 	{
-
+		UE_LOG(LogTemp, Log, TEXT("Enemy is shot."));
+	}
+	else if (OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag("Obstacle2D") && Player != nullptr && !Player->bIsIn3D)
+	{
+		Destroy();
+	}
+	else if (OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag("Obstacle3D") && Player != nullptr && Player->bIsIn3D)
+	{
+		Destroy();
 	}
 }
 
