@@ -25,8 +25,8 @@ APlayer_Class_Weapon::APlayer_Class_Weapon()
 
 	WeaponProjectileComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("WeaponProjMovement"));
 	WeaponProjectileComponent->UpdatedComponent = StaticMesh;
-	WeaponProjectileComponent->InitialSpeed = baseThrownWeaponSpeed;
-	WeaponProjectileComponent->MaxSpeed = 7000.0f;
+	WeaponProjectileComponent->InitialSpeed = 1000.0f;
+	WeaponProjectileComponent->MaxSpeed = 4000.0f;
 	WeaponProjectileComponent->bRotationFollowsVelocity = true;
 	WeaponProjectileComponent->ProjectileGravityScale = 0.0f;
 	WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
@@ -63,6 +63,7 @@ void APlayer_Class_Weapon::Tick(float DeltaTime)
 	{
 		GetWorldTimerManager().SetTimer(ThrowChargeTimerHandle, this, &APlayer_Class_Weapon::IncrementThrowCharge, throwChargeSpeedInterval, true);
 		bIsThrowing = false;
+		bIsCharging = true;
 	}
 
 	if (bIsGoingForward)
@@ -72,10 +73,7 @@ void APlayer_Class_Weapon::Tick(float DeltaTime)
 		if (FVector::Dist(OldPosition, NewPosition) >= throwMaxDistance)
 		{
 			bIsGoingForward = false;
-			
-			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.35f, true);
-
-			UE_LOG(LogTemp, Log, TEXT("Changed"));
+			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.2f, true);
 		}
 	}
 }
@@ -90,7 +88,15 @@ void APlayer_Class_Weapon::FireWeapon()
 			{
 				if (GI != nullptr && PlayerOwner->bIsIn3D)
 				{
-					FRotator SpawnRotation = PlayerOwner->Controller->GetControlRotation();
+					FHitResult Hit;
+					FVector CameraWorldLocation = PlayerOwner->FollowCamera3D->GetComponentLocation();
+					FVector CameraForwardVector = PlayerOwner->FollowCamera3D->GetForwardVector();
+
+					bool vectorSelect = GetWorld()->LineTraceSingleByChannel(Hit, CameraWorldLocation, 
+						CameraWorldLocation + CameraForwardVector * 4000.0f, ECollisionChannel::ECC_GameTraceChannel3);
+
+					FVector ProjMoveDirection = UKismetMathLibrary::SelectVector(Hit.ImpactPoint, Hit.TraceEnd, vectorSelect);
+					FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(ProjectileSpawner->GetComponentLocation(), ProjMoveDirection);
 
 					FActorSpawnParameters ProjActorSpawnParams;
 					ProjActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -152,81 +158,108 @@ void APlayer_Class_Weapon::PrepareToThrowWeapon()
 
 void APlayer_Class_Weapon::ThrowWeapon()
 {
-	if (GetWorldTimerManager().IsTimerActive(ThrowChargeTimerHandle))
-		GetWorldTimerManager().ClearTimer(ThrowChargeTimerHandle);
-
-	PlayerOwner->bHasGun = false;
-	bIsGoingForward = true;
-
-	DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
-	SetActorRotation(FRotator::ZeroRotator);
-
-	if (PlayerOwner->bIsIn3D)
+	if (bIsCharging)
 	{
-		FRotator ThrowRotation = PlayerOwner->Controller->GetControlRotation();
-		FVector ThrowDirection = ThrowRotation.Vector();
+		if (GetWorldTimerManager().IsTimerActive(ThrowChargeTimerHandle))
+			GetWorldTimerManager().ClearTimer(ThrowChargeTimerHandle);
 
-		WeaponProjectileComponent->SetVelocityInLocalSpace(ThrowDirection * (baseThrownWeaponSpeed + currentThrowCharge));
-	}
-	else
-	{
-		FVector WorldMousePosition = FVector::ZeroVector;
-		FVector WorldMouseDirection = FVector::ZeroVector;
+		PlayerOwner->bHasGun = false;
+		bIsGoingForward = true;
+		bIsCharging = false;
 
-		APlayerController* PlayerController = Cast<APlayerController>(PlayerOwner->Controller);
+		DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
+		SetActorRotation(FRotator::ZeroRotator);
 
-		if (PlayerController != nullptr)
+		if (PlayerOwner->bIsIn3D)
 		{
-			PlayerController->DeprojectMousePositionToWorld(WorldMousePosition, WorldMouseDirection);
-			WorldMousePosition.Y = PlayerOwner->GetActorLocation().Y;
+			FHitResult Hit;
+			FVector CameraWorldLocation = PlayerOwner->FollowCamera3D->GetComponentLocation();
+			FVector CameraForwardVector = PlayerOwner->FollowCamera3D->GetForwardVector();
 
-			FQuat ThrowQuaternion = (WorldMousePosition - PlayerOwner->GetActorLocation()).ToOrientationQuat();
-			FRotator ThrowRotation = ThrowQuaternion.Rotator();
+			bool vectorSelect = GetWorld()->LineTraceSingleByChannel(Hit, CameraWorldLocation,
+				CameraWorldLocation + CameraForwardVector * 4000.0f, ECollisionChannel::ECC_GameTraceChannel3);
+
+			FVector ProjMoveDirection = UKismetMathLibrary::SelectVector(Hit.ImpactPoint, Hit.TraceEnd, vectorSelect);
+			FRotator ThrowRotation = UKismetMathLibrary::FindLookAtRotation(ProjectileSpawner->GetComponentLocation(), ProjMoveDirection);
 			FVector ThrowDirection = ThrowRotation.Vector();
 
-			WeaponProjectileComponent->SetVelocityInLocalSpace(ThrowDirection * (baseThrownWeaponSpeed + currentThrowCharge));
+			WeaponProjectileComponent->SetVelocityInLocalSpace(ThrowDirection * (WeaponProjectileComponent->InitialSpeed + currentThrowCharge));
 		}
+		else
+		{
+			FVector WorldMousePosition = FVector::ZeroVector;
+			FVector WorldMouseDirection = FVector::ZeroVector;
+
+			APlayerController* PlayerController = Cast<APlayerController>(PlayerOwner->Controller);
+
+			if (PlayerController != nullptr)
+			{
+				PlayerController->DeprojectMousePositionToWorld(WorldMousePosition, WorldMouseDirection);
+				WorldMousePosition.Y = PlayerOwner->GetActorLocation().Y;
+
+				FQuat ThrowQuaternion = (WorldMousePosition - PlayerOwner->GetActorLocation()).ToOrientationQuat();
+				FRotator ThrowRotation = ThrowQuaternion.Rotator();
+				FVector ThrowDirection = ThrowRotation.Vector();
+
+				WeaponProjectileComponent->SetVelocityInLocalSpace(ThrowDirection * (WeaponProjectileComponent->InitialSpeed + currentThrowCharge));
+			}
+		}
+
+		OldPosition = GetActorLocation();
 	}
-
-	OldPosition = GetActorLocation();
-
-	//After a certain distance (or if something is hit) the weapon comes back to the player while ignoring everything (maybe except enemies?)
-	//Player then retrieves weapon and puts it at previous location.
 }
 
 void APlayer_Class_Weapon::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	/*
-	if (OtherActor != nullptr && OtherActor != this && !bIsGoingForward && OtherActor->ActorHasTag(TEXT("Player")))
+	if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag(TEXT("Obstacle2D")) && PlayerOwner != nullptr &&
+		!PlayerOwner->bIsIn3D)
 	{
-		WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
-		AttachToComponent(PlayerOwner->GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-		
-		GetWorldTimerManager().ClearTimer(ReturnToPlayerTimerHandle);
-		FTransform ResetTransform = FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 0.0f), GetActorScale());
-		SetActorRelativeTransform(ResetTransform);
-
-		UE_LOG(LogTemp, Log, TEXT("Called"));
+		bIsGoingForward = false;
+		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
 	}
-	*/
+	else if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag(TEXT("Obstacle3D")) && PlayerOwner != nullptr &&
+		PlayerOwner->bIsIn3D)
+	{
+		bIsGoingForward = false;
+		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
+	}
+	else if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Enemy")))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Enemy is stunned"));
+		bIsGoingForward = false;
+		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
+	}
+	else if (!bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Player")))
+	{
+		if (!IsAttachedTo(OtherActor))
+		{
+			GetWorldTimerManager().ClearTimer(ReturnToPlayerTimerHandle);
+			WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
+			AttachToComponent(PlayerOwner->GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+
+			FTransform InitialTransform = FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 0.0f), GetActorScale());
+			SetActorRelativeTransform(InitialTransform);
+			PlayerOwner->bHasGun = true;
+		}
+	}
 }
 
 void APlayer_Class_Weapon::IncrementThrowCharge()
 {
 	currentThrowCharge += throwChargeAmountByInterval;
 
-	if (baseThrownWeaponSpeed + currentThrowCharge > maxThrowSpeed)
+	if (WeaponProjectileComponent->InitialSpeed + currentThrowCharge > WeaponProjectileComponent->MaxSpeed)
 	{
-		currentThrowCharge = maxThrowSpeed - baseThrownWeaponSpeed;
+		currentThrowCharge = WeaponProjectileComponent->MaxSpeed - WeaponProjectileComponent->InitialSpeed;
 		GetWorldTimerManager().ClearTimer(ThrowChargeTimerHandle);
 	}
 }
 
 void APlayer_Class_Weapon::ReturnToPlayer()
 {
-	SetActorRotation(FRotator::ZeroRotator);
+	FVector WorldDirectionToPlayer = UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), PlayerOwner->GetActorLocation());
+	FVector LocalDirectionToPlayer = UKismetMathLibrary::InverseTransformDirection(GetActorTransform(), WorldDirectionToPlayer);
 
-	FVector DirectionToPlayer = UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), PlayerOwner->GetActorLocation());
-	WeaponProjectileComponent->SetVelocityInLocalSpace(DirectionToPlayer * maxThrowSpeed);
+	WeaponProjectileComponent->SetVelocityInLocalSpace(LocalDirectionToPlayer * WeaponProjectileComponent->MaxSpeed);
 }
 

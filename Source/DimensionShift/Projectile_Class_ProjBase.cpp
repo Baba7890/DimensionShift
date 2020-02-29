@@ -56,11 +56,8 @@ void AProjectile_Class_ProjBase::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 	{
 		UE_LOG(LogTemp, Log, TEXT("Enemy is shot."));
 	}
-	else if (OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag("Obstacle2D") && Player != nullptr && !Player->bIsIn3D)
-	{
-		Destroy();
-	}
-	else if (OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag("Obstacle3D") && Player != nullptr && Player->bIsIn3D)
+	else if (OtherActor != nullptr && OtherActor != this && Player != nullptr && ((OtherComp->ComponentHasTag(TEXT("Obstacle3D")) 
+		&& Player->bIsIn3D) || (OtherComp->ComponentHasTag(TEXT("Obstacle2D")) && !Player->bIsIn3D)))
 	{
 		Destroy();
 	}

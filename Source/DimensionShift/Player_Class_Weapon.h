@@ -48,20 +48,18 @@ public:
 		float shootSteamUsage = 2.0f;
 
 	bool bIsShooting = false;
-	bool bIsThrowing = false;
-	bool bIsGoingForward = false;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float baseThrownWeaponSpeed = 1000.0f;
+	#pragma region Throw Weapon variables
+
+	bool bIsThrowing = false;
+	bool bIsCharging = false;
+	bool bIsGoingForward = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwChargeSpeedInterval = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float currentThrowCharge = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float maxThrowSpeed = 4000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwChargeAmountByInterval = 500.0f;
@@ -71,6 +69,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwStunDuration = 1.0f;
+
+	#pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerOwner")
 		APlayer_Class_MovementShift* PlayerOwner;	
@@ -124,7 +124,8 @@ private:
 	void IncrementThrowCharge();
 
 	/**
-	 *
+	 * Returns the weapon back to the player
+	 * LOC - Called when the weapon has reached its max distance, OR when the weapon has hit something other than the player
 	 */
 	void ReturnToPlayer();
 };
