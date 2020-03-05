@@ -115,8 +115,8 @@ void APlayer_Class_MovementShift::BeginPlay()
 
 		Weapon = GetWorld()->SpawnActor<APlayer_Class_Weapon>(WeaponActor, WeaponActorSpawnParams);
 		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+		Weapon->SetActorRelativeLocation(FVector::ZeroVector);
 		Weapon->PlayerOwner = this;
-		Weapon->WeaponProjectileComponent->HomingTargetComponent = RootComponent;
 	}
 }
 

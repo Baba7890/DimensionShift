@@ -30,7 +30,6 @@ APlayer_Class_Weapon::APlayer_Class_Weapon()
 	WeaponProjectileComponent->bRotationFollowsVelocity = true;
 	WeaponProjectileComponent->ProjectileGravityScale = 0.0f;
 	WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
-	WeaponProjectileComponent->HomingAccelerationMagnitude = 20.0f;
 
 	AutoReceiveInput = EAutoReceiveInput::Player0;
 }
