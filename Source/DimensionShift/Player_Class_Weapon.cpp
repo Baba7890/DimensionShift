@@ -30,6 +30,7 @@ APlayer_Class_Weapon::APlayer_Class_Weapon()
 	WeaponProjectileComponent->bRotationFollowsVelocity = true;
 	WeaponProjectileComponent->ProjectileGravityScale = 0.0f;
 	WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
+	WeaponProjectileComponent->HomingAccelerationMagnitude = 20.0f;
 
 	AutoReceiveInput = EAutoReceiveInput::Player0;
 }
@@ -72,8 +73,8 @@ void APlayer_Class_Weapon::Tick(float DeltaTime)
 		
 		if (FVector::Dist(OldPosition, NewPosition) >= throwMaxDistance)
 		{
+			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
 			bIsGoingForward = false;
-			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.2f, true);
 		}
 	}
 }
@@ -106,7 +107,7 @@ void APlayer_Class_Weapon::FireWeapon()
 					PlayerOwner->ReduceSteam(shootSteamUsage);
 					bIsShooting = true;
 
-					GetWorld()->GetTimerManager().SetTimer(FireDelayTimerHandle, this, &APlayer_Class_Weapon::ResetIsShooting, fireDelay, 
+					GetWorld()->GetTimerManager().SetTimer(FireDelayTimerHandle, this, &APlayer_Class_Weapon::ResetIsShooting, shootFireDelay, 
 						false);
 				}
 				else if (GI != nullptr && !PlayerOwner->bIsIn3D)
@@ -133,7 +134,7 @@ void APlayer_Class_Weapon::FireWeapon()
 						PlayerOwner->ReduceSteam(shootSteamUsage);
 						bIsShooting = true;
 
-						GetWorld()->GetTimerManager().SetTimer(FireDelayTimerHandle, this, &APlayer_Class_Weapon::ResetIsShooting, fireDelay,
+						GetWorld()->GetTimerManager().SetTimer(FireDelayTimerHandle, this, &APlayer_Class_Weapon::ResetIsShooting, shootFireDelay,
 							false);
 					}
 				}
@@ -211,35 +212,35 @@ void APlayer_Class_Weapon::ThrowWeapon()
 
 void APlayer_Class_Weapon::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag(TEXT("Obstacle2D")) && PlayerOwner != nullptr &&
-		!PlayerOwner->bIsIn3D)
+	if (bIsGoingForward)
 	{
-		bIsGoingForward = false;
-		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
-	}
-	else if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherComp->ComponentHasTag(TEXT("Obstacle3D")) && PlayerOwner != nullptr &&
-		PlayerOwner->bIsIn3D)
-	{
-		bIsGoingForward = false;
-		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
-	}
-	else if (bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Enemy")))
-	{
-		UE_LOG(LogTemp, Log, TEXT("Enemy is stunned"));
-		bIsGoingForward = false;
-		GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
-	}
-	else if (!bIsGoingForward && OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Player")))
-	{
-		if (!IsAttachedTo(OtherActor))
+		if (OtherActor != nullptr && OtherActor != this && PlayerOwner != nullptr && ((OtherComp->ComponentHasTag(TEXT("Obstacle2D"))
+			&& !PlayerOwner->bIsIn3D) || (OtherComp->ComponentHasTag(TEXT("Obstacle3D")) && PlayerOwner->bIsIn3D)))
 		{
-			GetWorldTimerManager().ClearTimer(ReturnToPlayerTimerHandle);
-			WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
-			AttachToComponent(PlayerOwner->GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+			bIsGoingForward = false;
+			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
+		}
+		else if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Enemy")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Enemy is stunned"));
+			bIsGoingForward = false;
+			GetWorldTimerManager().SetTimer(ReturnToPlayerTimerHandle, this, &APlayer_Class_Weapon::ReturnToPlayer, 0.05f, true);
+		}
+	}
+	else
+	{
+		if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Player")))
+		{
+			if (!IsAttachedTo(OtherActor))
+			{
+				GetWorldTimerManager().ClearTimer(ReturnToPlayerTimerHandle);
+				WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
+				AttachToComponent(PlayerOwner->GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 
-			FTransform InitialTransform = FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 0.0f), GetActorScale());
-			SetActorRelativeTransform(InitialTransform);
-			PlayerOwner->bHasGun = true;
+				FTransform InitialTransform = FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 0.0f), GetActorScale());
+				SetActorRelativeTransform(InitialTransform);
+				PlayerOwner->bHasGun = true;
+			}
 		}
 	}
 }
@@ -260,6 +261,6 @@ void APlayer_Class_Weapon::ReturnToPlayer()
 	FVector WorldDirectionToPlayer = UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), PlayerOwner->GetActorLocation());
 	FVector LocalDirectionToPlayer = UKismetMathLibrary::InverseTransformDirection(GetActorTransform(), WorldDirectionToPlayer);
 
-	WeaponProjectileComponent->SetVelocityInLocalSpace(LocalDirectionToPlayer * WeaponProjectileComponent->MaxSpeed);
+	WeaponProjectileComponent->SetVelocityInLocalSpace(LocalDirectionToPlayer * throwReturnSpeed);
 }
 

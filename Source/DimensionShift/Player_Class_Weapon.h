@@ -42,7 +42,7 @@ public:
 		TSubclassOf<AProjectile_Class_ProjBase> Projectile;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float fireDelay = 1.0f;
+		float shootFireDelay = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float shootSteamUsage = 2.0f;
@@ -59,13 +59,13 @@ public:
 		float throwChargeSpeedInterval = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float currentThrowCharge = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwChargeAmountByInterval = 500.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwMaxDistance = 3000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+		float throwReturnSpeed = 3000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwStunDuration = 1.0f;
@@ -82,6 +82,8 @@ private:
 	UGameInstance_Class* GI;
 
 	FVector OldPosition;
+
+	float currentThrowCharge = 0.0f;
 
 protected:
 	virtual void PostInitializeComponents() override;

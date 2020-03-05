@@ -8,7 +8,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "TimerManager.h"
 #include "Projectile_Class_ProjBase.generated.h"
+
+class APlayer_Class_MovementShift;
 
 UCLASS()
 class DIMENSIONSHIFT_API AProjectile_Class_ProjBase : public AActor
@@ -28,6 +31,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 		UProjectileMovementComponent* ProjectileMovement;
 
+private:
+	APlayer_Class_MovementShift* Player;
+	
+	float currentLifeSpan = 0.0f;
+	FVector preDimensionSwapVelocity;
+
+	FTimerHandle ProjStopTimerHandle;
+	FTimerHandle ProjLifeSpanTimerHandle;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -39,4 +51,11 @@ public:
 	UFUNCTION()
 	void OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+private:
+	UFUNCTION()
+	void OnDimensionSwap(float swapDuration);
+
+	void OnDimensionSwapEnd();
+	void DestroyProjectile();
 };

@@ -116,6 +116,7 @@ void APlayer_Class_MovementShift::BeginPlay()
 		Weapon = GetWorld()->SpawnActor<APlayer_Class_Weapon>(WeaponActor, WeaponActorSpawnParams);
 		Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
 		Weapon->PlayerOwner = this;
+		Weapon->WeaponProjectileComponent->HomingTargetComponent = RootComponent;
 	}
 }
 
@@ -154,6 +155,11 @@ void APlayer_Class_MovementShift::UseSwapDimensionAbility()
 
 void APlayer_Class_MovementShift::DoSwapDimensionAction()
 {
+	if (OnDimensionSwapCallback.IsBound())
+	{
+		OnDimensionSwapCallback.Broadcast(swapDuration);
+	}
+
 	PreDimensionSwapVelocity = GetCharacterMovement()->Velocity;
 	GetCharacterMovement()->GravityScale = 0.0f;
 	GetCharacterMovement()->StopMovementImmediately();
