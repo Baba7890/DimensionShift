@@ -85,8 +85,6 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		bIsPlayerInside = true;
-
 		//Why does player use 'int' instead of a 'bool'? Because the player might be inside multiple level obstacle triggers at once.
 		//This is important in ensuring that the player doesn't accidentally teleport to the level box's baseline instead of one of the
 		//level obstacle's baseline.
@@ -115,11 +113,6 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 			}
 			
 			Player->LevelObstaclesInside.Add(this);
-
-			if (!Player->bIsIn3D)
-			{
-				CheckAndMoveActorToBaseline(OtherActor);
-			}
 		}	
 	}
 }
@@ -128,73 +121,34 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		bIsPlayerInside = false;
-
 		if (Player != nullptr)
 		{
-			if (!Player->bIsIn3D)
-			{
-				//=====================
-				//This code only runs in 2D
-				if (Player->LevelObstaclesInside.Num() > 1)
-				{
-					ALevel_Class_LevelObstacle* OtherObstacle = nullptr;
-
-					for (int i = 0; i < Player->LevelObstaclesInside.Num(); i++)
-					{
-						if (Player->LevelObstaclesInside[i] != nullptr && Player->LevelObstaclesInside[i] != this)
-						{
-							if (OtherObstacle != nullptr)
-							{
-								if (Player->LevelObstaclesInside[i]->priorityOverPlayerPosition > OtherObstacle->priorityOverPlayerPosition)
-								{
-									OtherObstacle = Player->LevelObstaclesInside[i];
-								}
-							}
-							else
-							{
-								OtherObstacle = Player->LevelObstaclesInside[i];
-							}
-						}
-					}
-
-					if (OtherObstacle->priorityOverPlayerPosition < priorityOverPlayerPosition)
-					{
-						OtherObstacle->CheckAndMoveActorToBaseline(Player);
-					}
-				}
-				else
-				{
-					OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos,
-						OtherActor->GetActorLocation().Z));
-				}
-				//=========================
-			}
-			
 			priorityOverPlayerPosition = -1;
 			Player->LevelObstaclesInside.Remove(this);
 		}
 	}
 }
 
-//This method is required to circumvent the player being stuck inside a LevelObstacle and not being able to see through it
 void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
 		SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic2D"), 1.0f);
+
+		OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos, 
+			OtherActor->GetActorLocation().Z), true);
 	}
 }
 
-int ALevel_Class_LevelObstacle::SetPriorityOverPlayerPosition()
+int ALevel_Class_LevelObstacle::GetPriorityOverPlayerPosition()
 {
 	return priorityOverPlayerPosition;
 }
 
-void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor)
+float ALevel_Class_LevelObstacle::GetObstacleBaselinePosition()
 {
 	float obstacleBaselineWorldYPos;
-	
+
 	if (bDoesBaselineUseObstacleCenter)
 	{
 		obstacleBaselineWorldYPos = GetActorLocation().Y;
@@ -205,10 +159,7 @@ void ALevel_Class_LevelObstacle::CheckAndMoveActorToBaseline(AActor* ChosenActor
 		obstacleBaselineWorldYPos = ParentLevelBox->GetActorLocation().Y + (obstacleBaselineLocalYPos * ParentLevelBox->GetActorScale3D().Y);
 	}
 
-	if (!(ChosenActor->SetActorLocation(FVector(ChosenActor->GetActorLocation().X, obstacleBaselineWorldYPos, ChosenActor->GetActorLocation().Z), true)))
-	{
-		SetCollisionProfileNameAndOpacity(TEXT("OverlapAllDynamic2D"), 0.65f);
-	}
+	return obstacleBaselineWorldYPos;
 }
 
 void ALevel_Class_LevelObstacle::SetCollisionProfileNameAndOpacity(FName ProfileName, float opacityValue)

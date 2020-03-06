@@ -1,5 +1,6 @@
 #include "Projectile_Class_ProjBase.h"
 #include "Player_Class_MovementShift.h"
+#include "GameInstance_Class.h"
 
 AProjectile_Class_ProjBase::AProjectile_Class_ProjBase()
 {
@@ -28,6 +29,7 @@ AProjectile_Class_ProjBase::AProjectile_Class_ProjBase()
 	ProjectileMovement->ProjectileGravityScale = 0.0f;
 
 	InitialLifeSpan = 2.0f;
+	threeDimenVelocity = FVector::ZeroVector;
 }
 
 void AProjectile_Class_ProjBase::BeginPlay()
@@ -63,8 +65,45 @@ void AProjectile_Class_ProjBase::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 
 void AProjectile_Class_ProjBase::OnDimensionSwap(float swapDuration)
 {
-	preDimensionSwapVelocity = ProjectileMovement->Velocity;
-	ProjectileMovement->Velocity = FVector::ZeroVector;
+	if (!Player->bIsIn3D)
+	{
+		FVector ProjVelocity = ProjectileMovement->Velocity;
+
+		//Finding angle between 'forward vector' and 'projectile movement normalized vector' on xy plane
+		FVector ZeroZProjVelocity = ProjVelocity;
+		ZeroZProjVelocity.Z = 0.0f;
+		ZeroZProjVelocity = ZeroZProjVelocity.GetSafeNormal();
+
+		float dotProd = FVector::DotProduct(ZeroZProjVelocity, FVector::ForwardVector);
+		float angleBetweenVectors = FMath::Acos(dotProd);
+		angleBetweenVectors = FMath::RadiansToDegrees(angleBetweenVectors);
+
+		if (angleBetweenVectors < dissapateAngle || angleBetweenVectors > 180.0f - dissapateAngle)
+		{
+			//Store 3D velocity and Y position
+			threeDimenVelocity = ProjectileMovement->Velocity;
+			threeDimenYPosition = GetActorLocation().Y;
+
+			ProjVelocity.Y = 0.0f;
+			ProjVelocity = ProjVelocity.GetSafeNormal();
+			ProjectileMovement->Velocity = ProjVelocity;
+		}
+		else
+		{
+			GetWorldTimerManager().ClearTimer(ProjLifeSpanTimerHandle);
+			DestroyProjectile();
+		}
+	}
+	else
+	{
+		if (threeDimenVelocity == FVector::ZeroVector)
+			threeDimenVelocity = ProjectileMovement->Velocity;
+
+		ProjectileMovement->Velocity = FVector::ZeroVector;
+
+		if (threeDimenYPosition != 0.0f)
+			SetActorLocation(FVector(GetActorLocation().X, threeDimenYPosition, GetActorLocation().Z));
+	}
 
 	GetWorldTimerManager().PauseTimer(ProjLifeSpanTimerHandle);
 	GetWorldTimerManager().SetTimer(ProjStopTimerHandle, this, &AProjectile_Class_ProjBase::OnDimensionSwapEnd, swapDuration, false);
@@ -72,8 +111,19 @@ void AProjectile_Class_ProjBase::OnDimensionSwap(float swapDuration)
 
 void AProjectile_Class_ProjBase::OnDimensionSwapEnd()
 {
-	SetLifeSpan(currentLifeSpan);
-	ProjectileMovement->Velocity = preDimensionSwapVelocity;
+	if (!Player->bIsIn3D)
+	{
+		ProjectileMovement->Velocity *= ProjectileMovement->InitialSpeed;
+		UGameInstance_Class* GI = Cast<UGameInstance_Class>(GetWorld()->GetGameInstance());
+
+		if (GI != nullptr)
+			SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
+	}
+	else
+	{
+		ProjectileMovement->Velocity = threeDimenVelocity;
+	}
+
 	GetWorldTimerManager().UnPauseTimer(ProjLifeSpanTimerHandle);
 }
 

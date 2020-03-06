@@ -31,6 +31,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 		UProjectileMovementComponent* ProjectileMovement;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
+		float dissapateAngle = 90.0f;
+
 private:
 	APlayer_Class_MovementShift* Player;
 	
@@ -39,6 +42,9 @@ private:
 
 	FTimerHandle ProjStopTimerHandle;
 	FTimerHandle ProjLifeSpanTimerHandle;
+
+	FVector threeDimenVelocity;
+	float threeDimenYPosition = 0.0f;
 
 protected:
 	// Called when the game starts or when spawned
@@ -53,9 +59,22 @@ public:
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
+	/**
+	 * Is called when the player swaps dimensions.
+	 * On called, stops projectile and also moves projectile plus realigns its movement velocity depending on whether the player is in 2D or 3D
+	 * @param - swapDuration -> the duration of the swapping action. Used to set timer to call OnDimensionSwapEnd().
+	 */
 	UFUNCTION()
 	void OnDimensionSwap(float swapDuration);
 
+	/**
+	 * Is called when the dimension swapping ends.
+	 * On called, moves the projectiles again
+	 */
 	void OnDimensionSwapEnd();
+
+	/**
+	 * Destroys the projectile after removing one of its method from Player delegate
+	 */
 	void DestroyProjectile();
 };

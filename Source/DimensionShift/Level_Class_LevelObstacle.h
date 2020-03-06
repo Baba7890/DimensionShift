@@ -51,8 +51,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dimension Obstacle")
 		bool bDoesTriggerUseColliderScale = true;
 
-	bool bIsPlayerInside = false;
-
 private:
 	ALevel_Class_LevelBox* ParentLevelBox;
 	APlayer_Class_MovementShift* Player;
@@ -79,15 +77,20 @@ public:
 	UFUNCTION()
 	void OnColliderEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	int SetPriorityOverPlayerPosition();
+	/**
+	 * Returns priorityOverPlayerPosition. Prevents setting of it
+	 */
+	int GetPriorityOverPlayerPosition();
 
 	/**
-	 * Checks and moves ChosenActor to this obstacle's baseline.
-	 * + If the ChosenActor cannot move to the baseline, the ChosenActor is not moved, the obstacle allows the player to move inside of it and becomes translucent.
-	 * @param - ChosenActor -> The AActor to be moved to this obstacle's baseline.
+	 * Returns the obstacle baseline y position depending on whether bDoesBaselineUseObstacleCenter is true or not
 	 */
-	void CheckAndMoveActorToBaseline(AActor* ChosenActor);
+	float GetObstacleBaselinePosition();
 
-private:
+	/**
+	 * Sets the collision profile name and material opacity if the player is behind the obstacle in 2D
+	 * @param - ProfileName -> The name of the collision profile to switch to
+	 * @param - opacityValue -> The opacity amount between 0.0f and 1.0f
+	 */
 	void SetCollisionProfileNameAndOpacity(FName ProfileName, float opacityValue);
 };

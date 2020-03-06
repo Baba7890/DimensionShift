@@ -241,6 +241,10 @@ void APlayer_Class_Weapon::OnTriggerBeginOverlap(UPrimitiveComponent* Overlapped
 				PlayerOwner->bHasGun = true;
 			}
 		}
+		else if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Enemy")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Enemy is stunned"));
+		}
 	}
 }
 

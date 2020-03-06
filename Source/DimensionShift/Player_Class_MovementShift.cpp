@@ -168,6 +168,26 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction()
 
 	if (bIsIn3D)
 	{
+		//Move player to highest priority obstacle that the player is inside
+		if (LevelObstaclesInside.Num() > 0)
+		{
+			TArray<ALevel_Class_LevelObstacle*> AvailableObstacles;
+			int highestPriority = -1;
+			int obstacleWithHighestPriority = -1;
+
+			for (int i = 0; i < LevelObstaclesInside.Num(); i++)
+			{
+				if (LevelObstaclesInside[i]->GetPriorityOverPlayerPosition() > highestPriority)
+				{
+					highestPriority = LevelObstaclesInside[i]->GetPriorityOverPlayerPosition();
+					obstacleWithHighestPriority = i;
+				}
+			}
+
+			SetActorLocation(FVector(GetActorLocation().X, LevelObstaclesInside[obstacleWithHighestPriority]->GetObstacleBaselinePosition(),
+				GetActorLocation().Z), true);
+		}
+
 		TransitionCamera->SetActive(true);
 		FollowCamera2D->SetActive(false);
 		GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn3D"));
@@ -183,7 +203,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction()
 		TransCameraBoom->SetWorldRotation(Controller->GetControlRotation());
 		FollowCamera3D->SetActive(false);
 		GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn2D"));
-
+		
 		if (GetWorld())
 		{
 			GetWorld()->GetTimerManager().SetTimer(DimensionTimerHandle, this, &APlayer_Class_MovementShift::TurnTo2D, swapDuration, false);
@@ -314,11 +334,6 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
-	if (LevelObstaclesInside.Num() > 0)
-	{
-		LevelObstaclesInside[0]->CheckAndMoveActorToBaseline(this);
-	}
-
 	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
 	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
 
@@ -332,17 +347,19 @@ void APlayer_Class_MovementShift::TurnTo3D()
 
 void APlayer_Class_MovementShift::TurnTo2D()
 {
+	FVector OldPosition = GetActorLocation();
+
+	if (!SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z), true))
+	{
+		SetActorLocation(OldPosition);
+	}
+	
 	bCanPlayerMove = true;
 	currentLerpAlpha = 0.0f;
 	bHasFinishedViewLerp = false;
 
 	CustomMoveComponent->GravityScale = CustomMoveComponent->maxGravityScale;
 	CustomMoveComponent->Velocity = PreDimensionSwapVelocity;
-
-	if (LevelObstaclesInside.Num() > 0)
-	{
-		LevelObstaclesInside[0]->CheckAndMoveActorToBaseline(this);
-	}
 
 	FollowCamera2D->SetActive(true);
 	TransitionCamera->SetActive(false);
@@ -354,12 +371,6 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	//This is located here instead of TurnTo3D() to prevent the 3D camera from showing the previous 3D camera rotation for 1 frame before 
 	//the player swapped to 3D. So we set the control rotation to zero beforehand
 	Controller->SetControlRotation(FRotator::ZeroRotator);
-
-	if (LevelObstaclesInside.Num() == 0)
-	{
-		FVector NewPos = FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z);
-		SetActorLocation(NewPos);
-	}
 }
 
 void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTime)
