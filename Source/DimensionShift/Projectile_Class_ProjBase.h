@@ -32,18 +32,16 @@ public:
 		UProjectileMovementComponent* ProjectileMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
-		float dissapateAngle = 90.0f;
+		float dissapateAngle = 45.0f;
 
 private:
 	APlayer_Class_MovementShift* Player;
 	
 	float currentLifeSpan = 0.0f;
-	FVector preDimensionSwapVelocity;
-
 	FTimerHandle ProjStopTimerHandle;
 	FTimerHandle ProjLifeSpanTimerHandle;
 
-	FVector threeDimenVelocity;
+	FVector ThreeDimenVelocity;
 	float threeDimenYPosition = 0.0f;
 
 protected:

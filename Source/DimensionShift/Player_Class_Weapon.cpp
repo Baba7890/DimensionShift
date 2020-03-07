@@ -239,6 +239,9 @@ void APlayer_Class_Weapon::OnTriggerBeginOverlap(UPrimitiveComponent* Overlapped
 				FTransform InitialTransform = FTransform(FRotator(0.0f, 0.0f, 0.0f), FVector(0.0f, 0.0f, 0.0f), GetActorScale());
 				SetActorRelativeTransform(InitialTransform);
 				PlayerOwner->bHasGun = true;
+
+				ThreeDimenVelocity = FVector::ZeroVector;
+				threeDimenYPosition = 0.0f;
 			}
 		}
 		else if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag(TEXT("Enemy")))
@@ -266,4 +269,103 @@ void APlayer_Class_Weapon::ReturnToPlayer()
 
 	WeaponProjectileComponent->SetVelocityInLocalSpace(LocalDirectionToPlayer * throwReturnSpeed);
 }
+
+void APlayer_Class_Weapon::OnDimensionSwap(float swapDuration)
+{
+	//We know that weapon is flying when player does not have gun
+	if (!PlayerOwner->bHasGun)
+	{
+		if (!PlayerOwner->bIsIn3D)
+		{
+			FVector ProjVelocity = WeaponProjectileComponent->Velocity;
+
+			FVector ZeroZProjVelocity = ProjVelocity;
+			ZeroZProjVelocity.Z = 0.0f;
+			ZeroZProjVelocity = ZeroZProjVelocity.GetSafeNormal();
+
+			float dotProd = FVector::DotProduct(ZeroZProjVelocity, FVector::ForwardVector);
+			float angleBetweenVectors = FMath::Acos(dotProd);
+			angleBetweenVectors = FMath::RadiansToDegrees(angleBetweenVectors);
+
+			if (bIsGoingForward)
+			{
+				if (angleBetweenVectors < dissapateAngle || angleBetweenVectors > 180.0f - dissapateAngle)
+				{
+					ThreeDimenVelocity = ProjVelocity;
+					threeDimenYPosition = GetActorLocation().Y;
+
+					ProjVelocity.Y = 0.0f;
+					ProjVelocity = ProjVelocity.GetSafeNormal();
+					WeaponProjectileComponent->Velocity = ProjVelocity;
+				}
+				else
+				{
+					bIsGoingForward = false;
+					SetActorLocation(PlayerOwner->GetActorLocation());
+				}
+			}
+			else
+			{
+				if (angleBetweenVectors < dissapateAngle || angleBetweenVectors > 180.0f - dissapateAngle)
+				{
+					threeDimenYPosition = GetActorLocation().Y;
+
+					GetWorldTimerManager().PauseTimer(ReturnToPlayerTimerHandle);
+					WeaponProjectileComponent->StopMovementImmediately();
+				}
+				else
+				{
+					SetActorLocation(PlayerOwner->GetActorLocation());
+				}
+			}
+		}
+		else
+		{
+			if (bIsGoingForward)
+			{
+				if (ThreeDimenVelocity == FVector::ZeroVector)
+					ThreeDimenVelocity = WeaponProjectileComponent->Velocity;
+			}
+			else
+			{
+				GetWorldTimerManager().PauseTimer(ReturnToPlayerTimerHandle);
+			}
+				
+			WeaponProjectileComponent->StopMovementImmediately();
+
+			if (threeDimenYPosition != 0.0f)
+				SetActorLocation(FVector(GetActorLocation().X, threeDimenYPosition, GetActorLocation().Z));
+		}
+
+		GetWorldTimerManager().SetTimer(WeaponStopTimerHandle, this, &APlayer_Class_Weapon::OnDimensionSwapEnd, swapDuration, false);
+	}
+}
+
+void APlayer_Class_Weapon::OnDimensionSwapEnd()
+{
+	if (!PlayerOwner->bIsIn3D)
+	{
+		if (GI != nullptr)
+		{
+			//If the player has the gun already, the weapon's flying angle was more than dissapateAngle and it has teleported back to player
+			//So do not call this. Otherwise, yes.
+			if (!PlayerOwner->bHasGun)
+				SetActorLocation(FVector(GetActorLocation().X, GI->GetPlayerInLevelBoxBaseline(), GetActorLocation().Z));
+		}
+
+		if (bIsGoingForward)
+			WeaponProjectileComponent->Velocity *= (WeaponProjectileComponent->InitialSpeed + currentThrowCharge);
+		else
+			GetWorldTimerManager().UnPauseTimer(ReturnToPlayerTimerHandle);
+	}
+	else
+	{
+		if (bIsGoingForward)
+			WeaponProjectileComponent->Velocity = ThreeDimenVelocity;
+		else
+			GetWorldTimerManager().UnPauseTimer(ReturnToPlayerTimerHandle);
+	}
+}
+
+
 

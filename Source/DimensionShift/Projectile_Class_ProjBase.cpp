@@ -29,7 +29,7 @@ AProjectile_Class_ProjBase::AProjectile_Class_ProjBase()
 	ProjectileMovement->ProjectileGravityScale = 0.0f;
 
 	InitialLifeSpan = 2.0f;
-	threeDimenVelocity = FVector::ZeroVector;
+	ThreeDimenVelocity = FVector::ZeroVector;
 }
 
 void AProjectile_Class_ProjBase::BeginPlay()
@@ -81,7 +81,7 @@ void AProjectile_Class_ProjBase::OnDimensionSwap(float swapDuration)
 		if (angleBetweenVectors < dissapateAngle || angleBetweenVectors > 180.0f - dissapateAngle)
 		{
 			//Store 3D velocity and Y position
-			threeDimenVelocity = ProjectileMovement->Velocity;
+			ThreeDimenVelocity = ProjVelocity;
 			threeDimenYPosition = GetActorLocation().Y;
 
 			ProjVelocity.Y = 0.0f;
@@ -96,8 +96,8 @@ void AProjectile_Class_ProjBase::OnDimensionSwap(float swapDuration)
 	}
 	else
 	{
-		if (threeDimenVelocity == FVector::ZeroVector)
-			threeDimenVelocity = ProjectileMovement->Velocity;
+		if (ThreeDimenVelocity == FVector::ZeroVector)
+			ThreeDimenVelocity = ProjectileMovement->Velocity;
 
 		ProjectileMovement->Velocity = FVector::ZeroVector;
 
@@ -121,7 +121,7 @@ void AProjectile_Class_ProjBase::OnDimensionSwapEnd()
 	}
 	else
 	{
-		ProjectileMovement->Velocity = threeDimenVelocity;
+		ProjectileMovement->Velocity = ThreeDimenVelocity;
 	}
 
 	GetWorldTimerManager().UnPauseTimer(ProjLifeSpanTimerHandle);

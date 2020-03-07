@@ -71,6 +71,7 @@ void ALevel_Class_LevelObstacle::BeginPlay()
 	StandingOnTrigger->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerBeginOverlap);
 	StandingOnTrigger->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnTriggerEndOverlap);
 	ObstacleCollider2D->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnColliderEndOverlap);
+	ObstacleCollider2D->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelObstacle::OnColliderBeginOverlap);
 
 	Player = Cast<APlayer_Class_MovementShift>(GetWorld()->GetFirstPlayerController()->GetCharacter());
 }
@@ -90,17 +91,17 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 		//level obstacle's baseline.
 		if (Player != nullptr)
 		{
-			if (Player->LevelObstaclesInside.Num() > 0)
+			if (Player->ObstacleTriggersInside.Num() > 0)
 			{
 				int highestPriority = -1;
 
-				for (int i = 0; i < Player->LevelObstaclesInside.Num(); i++)
+				for (int i = 0; i < Player->ObstacleTriggersInside.Num(); i++)
 				{
-					if (Player->LevelObstaclesInside[i] != nullptr)
+					if (Player->ObstacleTriggersInside[i] != nullptr)
 					{
-						if (Player->LevelObstaclesInside[i]->priorityOverPlayerPosition > highestPriority)
+						if (Player->ObstacleTriggersInside[i]->priorityOverPlayerPosition > highestPriority)
 						{
-							highestPriority = Player->LevelObstaclesInside[i]->priorityOverPlayerPosition;
+							highestPriority = Player->ObstacleTriggersInside[i]->priorityOverPlayerPosition;
 						}
 					}
 				}
@@ -112,7 +113,7 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 				priorityOverPlayerPosition = 1;
 			}
 			
-			Player->LevelObstaclesInside.Add(this);
+			Player->ObstacleTriggersInside.Add(this);
 		}	
 	}
 }
@@ -124,7 +125,7 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 		if (Player != nullptr)
 		{
 			priorityOverPlayerPosition = -1;
-			Player->LevelObstaclesInside.Remove(this);
+			Player->ObstacleTriggersInside.Remove(this);
 		}
 	}
 }
@@ -133,10 +134,26 @@ void ALevel_Class_LevelObstacle::OnColliderEndOverlap(UPrimitiveComponent* Overl
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
-		SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic2D"), 1.0f);
+		Player->ObstacleCollidersInside.Remove(this);
 
-		OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos, 
-			OtherActor->GetActorLocation().Z), true);
+		if (ObstacleCollider2D->GetCollisionProfileName() == TEXT("OverlapAllDynamic2D"))
+		{
+			SetCollisionProfileNameAndOpacity(TEXT("BlockAllDynamic2D"), 1.0f);
+		}
+
+		if (!Player->bIsIn3D)
+		{
+			OtherActor->SetActorLocation(FVector(OtherActor->GetActorLocation().X, ParentLevelBox->baselineYPos,
+				OtherActor->GetActorLocation().Z), true);
+		}
+	}
+}
+
+void ALevel_Class_LevelObstacle::OnColliderBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
+	{
+		Player->ObstacleCollidersInside.Add(this);
 	}
 }
 

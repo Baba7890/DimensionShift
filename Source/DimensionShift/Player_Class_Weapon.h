@@ -70,6 +70,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwStunDuration = 1.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
+		float dissapateAngle = 45.0f;
+
 	#pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PlayerOwner")
@@ -79,11 +82,15 @@ private:
 	FTimerHandle FireDelayTimerHandle;
 	FTimerHandle ThrowChargeTimerHandle;
 	FTimerHandle ReturnToPlayerTimerHandle;
+	FTimerHandle WeaponStopTimerHandle;
 	UGameInstance_Class* GI;
 
 	FVector OldPosition;
 
 	float currentThrowCharge = 0.0f;
+
+	FVector ThreeDimenVelocity;
+	float threeDimenYPosition = 0.0f;
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -119,6 +126,14 @@ public:
 	void OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	/**
+	 * Is called when the player swaps dimensions.
+	 * On called, stops weapon and also moves weapon plus realigns its movement velocity depending on whether the player is in 2D or 3D
+	 * @param - swapDuration -> the duration of the swapping action. Used to set timer to call OnDimensionSwapEnd().
+	 */
+	UFUNCTION()
+	void OnDimensionSwap(float swapDuration);
+
 private:
 	/**
 	 * Increments the potential throw distance of this weapon until it reaches maxThrowSpeed
@@ -130,4 +145,10 @@ private:
 	 * LOC - Called when the weapon has reached its max distance, OR when the weapon has hit something other than the player
 	 */
 	void ReturnToPlayer();
+
+	/**
+	 * Is called when the dimension swapping ends.
+	 * On called, moves the weapon again
+	 */
+	void OnDimensionSwapEnd();
 };

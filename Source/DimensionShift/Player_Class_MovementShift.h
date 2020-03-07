@@ -78,7 +78,9 @@ public:
 
 	bool bHasGun = true;
 
-	TArray<ALevel_Class_LevelObstacle*> LevelObstaclesInside;
+	TArray<ALevel_Class_LevelObstacle*> ObstacleTriggersInside;
+
+	TArray<ALevel_Class_LevelObstacle*> ObstacleCollidersInside;
 
 	#pragma region Health and Steam Stat Variables
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player Stats")
