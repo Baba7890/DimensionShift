@@ -33,6 +33,7 @@ APlayer_Class_Weapon::APlayer_Class_Weapon()
 	WeaponProjectileComponent->SetVelocityInLocalSpace(FVector(0.0f, 0.0f, 0.0f));
 
 	AutoReceiveInput = EAutoReceiveInput::Player0;
+	Tags.Add(TEXT("Weapon"));
 }
 
 void APlayer_Class_Weapon::PostInitializeComponents()
@@ -210,6 +211,8 @@ void APlayer_Class_Weapon::ThrowWeapon()
 			}
 		}
 
+		UE_LOG(LogTemp, Log, TEXT("%f"), currentThrowDistance);
+
 		OldPosition = GetActorLocation();
 	}
 }
@@ -272,12 +275,12 @@ void APlayer_Class_Weapon::OnTriggerBeginOverlap(UPrimitiveComponent* Overlapped
 void APlayer_Class_Weapon::IncrementThrowCharge()
 {
 	if (currentThrowCharge < WeaponProjectileComponent->MaxSpeed)
-		currentThrowCharge += throwChargeSpeedBuildByInterval;
+		currentThrowCharge += throwChargeSpeedBuildEachInterval;
 	else
 		currentThrowCharge = WeaponProjectileComponent->MaxSpeed;
 
 	if (currentThrowDistance < maxThrowDistance)
-		currentThrowDistance += throwChargeDistanceBuildByInterval;
+		currentThrowDistance += throwChargeDistanceBuildEachInterval;
 	else
 		currentThrowDistance = maxThrowDistance;
 

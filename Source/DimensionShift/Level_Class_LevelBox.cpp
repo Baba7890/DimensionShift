@@ -15,6 +15,8 @@ ALevel_Class_LevelBox::ALevel_Class_LevelBox()
 
 	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnBeginOverlap);
 	BoxCollider->OnComponentEndOverlap.AddDynamic(this, &ALevel_Class_LevelBox::OnEndOverlap);
+
+	Tags.Add(TEXT("LevelBox"));
 }
 
 void ALevel_Class_LevelBox::PostInitializeComponents()

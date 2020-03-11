@@ -59,7 +59,7 @@ public:
 		float throwChargeSpeedInterval = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float throwChargeSpeedBuildByInterval = 500.0f;
+		float throwChargeSpeedBuildEachInterval = 500.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwReturnSpeed = 3000.0f;
@@ -71,7 +71,7 @@ public:
 		float maxThrowDistance = 3000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float throwChargeDistanceBuildByInterval = 250.0f;
+		float throwChargeDistanceBuildEachInterval = 250.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwStunDuration = 1.0f;
