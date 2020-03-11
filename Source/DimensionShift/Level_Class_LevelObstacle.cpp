@@ -86,6 +86,7 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
+		/*
 		//Why does player use 'int' instead of a 'bool'? Because the player might be inside multiple level obstacle triggers at once.
 		//This is important in ensuring that the player doesn't accidentally teleport to the level box's baseline instead of one of the
 		//level obstacle's baseline.
@@ -115,6 +116,7 @@ void ALevel_Class_LevelObstacle::OnTriggerBeginOverlap(UPrimitiveComponent* Over
 			
 			Player->ObstacleTriggersInside.Add(this);
 		}	
+		*/
 	}
 }
 
@@ -122,11 +124,13 @@ void ALevel_Class_LevelObstacle::OnTriggerEndOverlap(UPrimitiveComponent* Overla
 {
 	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Player"))
 	{
+		/*
 		if (Player != nullptr)
 		{
 			priorityOverPlayerPosition = -1;
 			Player->ObstacleTriggersInside.Remove(this);
 		}
+		*/
 	}
 }
 

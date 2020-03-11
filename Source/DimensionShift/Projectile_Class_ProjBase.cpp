@@ -1,6 +1,7 @@
 #include "Projectile_Class_ProjBase.h"
 #include "Player_Class_MovementShift.h"
 #include "GameInstance_Class.h"
+#include "Level_Class_LevelObstacle.h"
 
 AProjectile_Class_ProjBase::AProjectile_Class_ProjBase()
 {
@@ -51,15 +52,27 @@ void AProjectile_Class_ProjBase::Tick(float DeltaTime)
 
 void AProjectile_Class_ProjBase::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor != nullptr && OtherActor != this && OtherActor->ActorHasTag("Enemy"))
+	if (OtherActor != nullptr && OtherActor != this)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Enemy is shot."));
-	}
-	else if (OtherActor != nullptr && OtherActor != this && Player != nullptr && ((OtherComp->ComponentHasTag(TEXT("Obstacle3D")) 
-		&& Player->bIsIn3D) || (OtherComp->ComponentHasTag(TEXT("Obstacle2D")) && !Player->bIsIn3D)))
-	{
-		GetWorldTimerManager().ClearTimer(ProjLifeSpanTimerHandle);
-		DestroyProjectile();
+		ALevel_Class_LevelObstacle* Obstacle = Cast<ALevel_Class_LevelObstacle>(OtherActor);
+
+		if (Obstacle)
+		{
+			if (Player != nullptr && ((OtherComp->ComponentHasTag(TEXT("Obstacle3D")) && Player->bIsIn3D) || (
+				OtherComp->ComponentHasTag(TEXT("Obstacle2D")) && !Player->bIsIn3D)))
+			{
+				DestroyProjectile();
+			}
+		}
+		else if (OtherActor->ActorHasTag("Enemy"))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Enemy is shot."));
+			DestroyProjectile();
+		}
+		else if (!OtherActor->ActorHasTag("LevelBox") && !OtherActor->ActorHasTag("Weapon") && !OtherActor->ActorHasTag("Player"))
+		{
+			DestroyProjectile();
+		}
 	}
 }
 
@@ -90,7 +103,6 @@ void AProjectile_Class_ProjBase::OnDimensionSwap(float swapDuration)
 		}
 		else
 		{
-			GetWorldTimerManager().ClearTimer(ProjLifeSpanTimerHandle);
 			DestroyProjectile();
 		}
 	}
@@ -129,6 +141,7 @@ void AProjectile_Class_ProjBase::OnDimensionSwapEnd()
 
 void AProjectile_Class_ProjBase::DestroyProjectile()
 {
+	GetWorldTimerManager().ClearTimer(ProjLifeSpanTimerHandle);
 	Player->OnDimensionSwapCallback.RemoveDynamic(this, &AProjectile_Class_ProjBase::OnDimensionSwap);
 	Destroy();
 }

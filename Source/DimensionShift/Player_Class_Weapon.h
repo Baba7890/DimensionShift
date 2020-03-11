@@ -51,21 +51,27 @@ public:
 
 	#pragma region Throw Weapon variables
 
-	bool bIsThrowing = false;
-	bool bIsCharging = false;
+	bool bIsBeginningThrow = false;
+	bool bIsChargingThrow = false;
 	bool bIsGoingForward = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwChargeSpeedInterval = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float throwChargeAmountByInterval = 500.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-		float throwMaxDistance = 3000.0f;
+		float throwChargeSpeedBuildByInterval = 500.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwReturnSpeed = 3000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+		float initialThrowDistance = 1000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+		float maxThrowDistance = 3000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+		float throwChargeDistanceBuildByInterval = 250.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 		float throwStunDuration = 1.0f;
@@ -88,6 +94,7 @@ private:
 	FVector OldPosition;
 
 	float currentThrowCharge = 0.0f;
+	float currentThrowDistance = 0.0f;
 
 	FVector ThreeDimenVelocity;
 	float threeDimenYPosition = 0.0f;

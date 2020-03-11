@@ -172,7 +172,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction()
 	{
 		GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn3D"));
 
-		//Resetting all overlapping 2D colliders back to block 2D.
+		//Resetting all obstacles 2D colliders back to block 2D.
 		if (ObstacleCollidersInside.Num() > 0)
 		{
 			for (int i = 0; i < ObstacleCollidersInside.Num(); i++)
@@ -183,31 +183,22 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction()
 				}
 			}
 		}
-		//--------------------------------------
 
-		//Move player to highest priority obstacle that the player is inside
-		if (ObstacleTriggersInside.Num() > 0)
-		{
-			TArray<ALevel_Class_LevelObstacle*> AvailableObstacles;
-			int highestPriority = -1;
-			int obstacleWithHighestPriority = -1;
+		//Set player position in 3D to current standing on obstacle baseline 
+		FFindFloorResult Floor = CustomMoveComponent->CurrentFloor;
+		ALevel_Class_LevelObstacle* ObstacleOn = Cast<ALevel_Class_LevelObstacle>(Floor.HitResult.Actor);
 
-			for (int i = 0; i < ObstacleTriggersInside.Num(); i++)
-			{
-				if (ObstacleTriggersInside[i]->GetPriorityOverPlayerPosition() > highestPriority)
-				{
-					highestPriority = ObstacleTriggersInside[i]->GetPriorityOverPlayerPosition();
-					obstacleWithHighestPriority = i;
-				}
-			}
-
-			SetActorLocation(FVector(GetActorLocation().X, ObstacleTriggersInside[obstacleWithHighestPriority]->GetObstacleBaselinePosition(),
-				GetActorLocation().Z), true);
-		}
-		//-------------------------------------
+		if (ObstacleOn != nullptr)
+			SetActorLocation(FVector(GetActorLocation().X,	ObstacleOn->GetObstacleBaselinePosition(), GetActorLocation().Z));
 
 		TransitionCamera->SetActive(true);
 		FollowCamera2D->SetActive(false);
+
+		//Choosing whether the 3D camera will facing forward or backwards depending on player forward direction in 2D.
+		if (GetIsPlayerLookingRightInTwoDimen())
+			Controller->SetControlRotation(FRotator::ZeroRotator);
+		else
+			Controller->SetControlRotation(FRotator(0.0f, -180.0f, 0.0f));
 
 		if (GetWorld())
 		{
@@ -216,6 +207,7 @@ void APlayer_Class_MovementShift::DoSwapDimensionAction()
 	}
 	else
 	{
+		//Changing all 2D colliders player is inside to overlap player (except if it is the obstacle the player is standing on)
 		FFindFloorResult Floor = CustomMoveComponent->CurrentFloor;
 
 		ALevel_Class_LevelObstacle* ObstacleOn = Cast<ALevel_Class_LevelObstacle>(Floor.HitResult.Actor);
@@ -382,7 +374,6 @@ void APlayer_Class_MovementShift::TurnTo3D()
 	TransitionCamera->SetActive(false);
 
 	CustomMoveComponent->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-	Controller->SetControlRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(false);
 }
 
@@ -404,10 +395,6 @@ void APlayer_Class_MovementShift::TurnTo2D()
 	CustomMoveComponent->RotationRate = FRotator(0.0f, 3000.0f, 0.0f);
 	SetActorRotation(FRotator::ZeroRotator);
 	Controller->SetIgnoreLookInput(true);
-
-	//This is located here instead of TurnTo3D() to prevent the 3D camera from showing the previous 3D camera rotation for 1 frame before 
-	//the player swapped to 3D. So we set the control rotation to zero beforehand
-	Controller->SetControlRotation(FRotator::ZeroRotator);
 
 	FVector OldPosition = GetActorLocation();
 
@@ -438,8 +425,15 @@ void APlayer_Class_MovementShift::PerformTransitionCameraMovement(float deltaTim
 		}
 		else
 		{
-			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(FRotator(0.0f, -90.0f, 0.0f)), FQuat(FRotator(FRotator::ZeroRotator)),
-				currentLerpAlpha));
+			//Choosing how the transition camera will move (clockwise or not) depending on player forward direction in 2D.
+			FQuat TransitionCameraQuat;
+
+			if (GetIsPlayerLookingRightInTwoDimen())
+				TransitionCameraQuat = FQuat(FRotator(FRotator::ZeroRotator));
+			else
+				TransitionCameraQuat = FQuat(FRotator(0.0f, -180.0f, 0.0f));
+
+			TransCameraBoom->SetWorldRotation(FMath::Lerp(FQuat(FRotator(0.0f, -90.0f, 0.0f)), TransitionCameraQuat, currentLerpAlpha));
 
 			currentLerpAlpha += deltaTime * (1.0f / (swapDuration / 2.0f));
 			currentLerpAlpha = FMath::Clamp(currentLerpAlpha, 0.0f, 1.0f);

@@ -20,9 +20,9 @@ class APlayer_Class_Weapon;
 class ALevel_Class_LevelObstacle;
 class UPlayer_Class_CustomMoveComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDimensionProjDelegate, float, swapDuration);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDimensionSwapDelegate, float, swapDuration);
 
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 {
 	GENERATED_BODY()
@@ -30,7 +30,8 @@ class DIMENSIONSHIFT_API APlayer_Class_MovementShift : public ACharacter
 public:
 	APlayer_Class_MovementShift(const FObjectInitializer& ObjectInitializer);
 
-	FDimensionProjDelegate OnDimensionSwapCallback;
+	UPROPERTY(BlueprintAssignable, Category = "Dimension")
+		FDimensionSwapDelegate OnDimensionSwapCallback;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dimension")
 		bool bIsIn3D = false;
@@ -78,8 +79,7 @@ public:
 
 	bool bHasGun = true;
 
-	TArray<ALevel_Class_LevelObstacle*> ObstacleTriggersInside;
-
+	//TArray<ALevel_Class_LevelObstacle*> ObstacleTriggersInside;
 	TArray<ALevel_Class_LevelObstacle*> ObstacleCollidersInside;
 
 	#pragma region Health and Steam Stat Variables
